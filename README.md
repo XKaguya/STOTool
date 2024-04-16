@@ -2,9 +2,9 @@
 
 A tool for check Star Trek Online game's server status.
 
-This application is designed for 2K resoulution screen.
+**This application is designed for 2K resoulution screen.**
 
-Due to background image, This is inevitable.
+**Due to background image, This is inevitable.**
 
 ![img](https://github.com/XKaguya/STOTool/assets/96401952/02eaa90d-a557-43be-a7fd-434c24c395a6)
 
