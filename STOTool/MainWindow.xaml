@@ -1,0 +1,96 @@
+﻿<Window x:Class="STOTool.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:STOTool"
+        xmlns:generic="clr-namespace:STOTool.Generic"
+        mc:Ignorable="d"
+        Title="STO Tool" Height="1650" Width="1500" ResizeMode="NoResize">
+    <Window.Background>
+        <ImageBrush x:Name="BackGround" ImageSource="pack://application:,,,/STOTool;component/Background/Bg_Down.png"/>
+    </Window.Background>
+    <Canvas>
+
+        <!-- One -->
+
+        <Image x:Name="News1" Width="370" Height="230" Source="pack://application:,,,/STOTool;component/Background/Placeholder.png" Stretch="UniformToFill" Canvas.Left="275" Canvas.Top="430"></Image>
+        <TextBlock Width="370" x:Name="NewsTitle1" Text="Placeholder" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="40" Foreground="White" Canvas.Left="275" Canvas.Top="660" FontFamily="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"></TextBlock>
+
+        <Image x:Name="News2" Width="370" Height="230" Source="pack://application:,,,/STOTool;component/Background/Placeholder.png" Stretch="UniformToFill" Canvas.Left="665" Canvas.Top="430"></Image>
+        <TextBlock x:Name="NewsTitle2" Text="Placeholder" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="40" Foreground="White" Canvas.Left="665" Canvas.Top="660" FontFamily="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"></TextBlock>
+
+        <Image x:Name="News3" Width="370" Height="230" Source="pack://application:,,,/STOTool;component/Background/Placeholder.png" Stretch="UniformToFill" Canvas.Left="1055" Canvas.Top="430"></Image>
+        <TextBlock x:Name="NewsTitle3" Text="Placeholder" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="40" Foreground="White" Canvas.Left="1055" Canvas.Top="660" FontFamily="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"></TextBlock>
+
+        <!-- Two -->
+
+        <Image x:Name="News4" Width="370" Height="230" Source="pack://application:,,,/STOTool;component/Background/Placeholder.png" Stretch="UniformToFill" Canvas.Left="275" Canvas.Top="715"></Image>
+        <TextBlock x:Name="NewsTitle4" Text="Placeholder" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="40" Foreground="White" Canvas.Left="275" Canvas.Top="945" FontFamily="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"></TextBlock>
+
+        <Image x:Name="News5" Width="370" Height="230" Source="pack://application:,,,/STOTool;component/Background/Placeholder.png" Stretch="UniformToFill" Canvas.Left="665" Canvas.Top="715"></Image>
+        <TextBlock x:Name="NewsTitle5" Text="Placeholder" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="40" Foreground="White" Canvas.Left="665" Canvas.Top="945" FontFamily="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"></TextBlock>
+
+        <Image x:Name="News6" Width="370" Height="230" Source="pack://application:,,,/STOTool;component/Background/Placeholder.png" Stretch="UniformToFill" Canvas.Left="1055" Canvas.Top="715"></Image>
+        <TextBlock x:Name="NewsTitle6" Text="Placeholder" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="40" Foreground="White" Canvas.Left="1055" Canvas.Top="945" FontFamily="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"></TextBlock>
+
+        <!-- Three -->
+
+        <Image x:Name="News7" Width="370" Height="230" Source="pack://application:,,,/STOTool;component/Background/Placeholder.png" Stretch="UniformToFill" Canvas.Left="275" Canvas.Top="1000"></Image>
+        <TextBlock x:Name="NewsTitle7" Text="Placeholder" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="40" Foreground="White" Canvas.Left="275" Canvas.Top="1230" FontFamily="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"></TextBlock>
+
+        <Image x:Name="News8" Width="370" Height="230" Source="pack://application:,,,/STOTool;component/Background/Placeholder.png" Stretch="UniformToFill" Canvas.Left="665" Canvas.Top="1000"></Image>
+        <TextBlock x:Name="NewsTitle8" Text="Placeholder" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="40" Foreground="White" Canvas.Left="665" Canvas.Top="1230" FontFamily="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"></TextBlock>
+
+        <Image x:Name="News9" Width="370" Height="230" Source="pack://application:,,,/STOTool;component/Background/Placeholder.png" Stretch="UniformToFill" Canvas.Left="1055" Canvas.Top="1000"></Image>
+        <TextBlock x:Name="NewsTitle9" Text="Placeholder" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="40" Foreground="White" Canvas.Left="1055" Canvas.Top="1230" FontFamily="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"></TextBlock>
+
+        <!-- Four -->
+
+        <TextBlock x:Name="RecentNewsTitle1" Width="240" Text="Placeholder" FontWeight="Bold" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" FontSize="30" Foreground="Gray" Canvas.Left="250" Canvas.Top="25" FontFamily="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"></TextBlock>
+        <TextBlock x:Name="RecentNewsStartTime1" Width="300" Text="Placeholder" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="40" Foreground="White" Canvas.Left="250" Canvas.Top="70" FontFamily="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"></TextBlock>
+        <TextBlock x:Name="RecentNewsEndTime1" Width="300" Text="Placeholder" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="40" Foreground="White" Canvas.Left="250" Canvas.Top="120" FontFamily="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"></TextBlock>
+
+        <TextBlock x:Name="RecentNewsTitle2" Width="240" Text="Placeholder" FontWeight="Bold" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" FontSize="30" Foreground="Gray" Canvas.Left="500" Canvas.Top="25" FontFamily="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"></TextBlock>
+        <TextBlock x:Name="RecentNewsStartTime2" Width="300" Text="Placeholder" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="40" Foreground="White" Canvas.Left="500" Canvas.Top="70" FontFamily="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"></TextBlock>
+        <TextBlock x:Name="RecentNewsEndTime2" Width="300" Text="Placeholder" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="40" Foreground="White" Canvas.Left="500" Canvas.Top="120" FontFamily="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"></TextBlock>
+
+        <TextBlock x:Name="RecentNewsTitle3" Width="240" Text="Placeholder" FontWeight="Bold" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" FontSize="30" Foreground="Gray" Canvas.Left="750" Canvas.Top="25" FontFamily="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"></TextBlock>
+        <TextBlock x:Name="RecentNewsStartTime3" Width="300" Text="Placeholder" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="40" Foreground="White" Canvas.Left="750" Canvas.Top="70" FontFamily="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"></TextBlock>
+        <TextBlock x:Name="RecentNewsEndTime3" Width="300" Text="Placeholder" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="40" Foreground="White" Canvas.Left="750" Canvas.Top="120" FontFamily="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"></TextBlock>
+
+        <!-- Five -->
+
+        <TextBlock x:Name="MaintenanceInfo" Text="Placeholder" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="40" Foreground="White" Canvas.Left="290" Canvas.Top="1290" FontFamily="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"></TextBlock>
+
+        <StackPanel>
+            <Button x:Name="Setting" Content="Setting" Width="100" Height="50" FontSize="30" Foreground="White" Margin="1300, 1250, 0, 0" Click="SettingButtonClick">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="FontFamily" Value="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="BorderBrush" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Padding" Value="5"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </StackPanel>
+
+        <StackPanel>
+            <Button x:Name="Log" Content="Log" Width="100" Height="50" FontSize="30" Foreground="White" Margin="1300, 1300, 0, 0" Click="LogButtonClick">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="FontFamily" Value="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="BorderBrush" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Padding" Value="5"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </StackPanel>
+
+
+    </Canvas>
+</Window>
