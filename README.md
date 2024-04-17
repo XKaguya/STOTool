@@ -1,12 +1,12 @@
 # STO-Tool
 
-A tool for check Star Trek Online game's server status.
+A tool for checking the server status of Star Trek Online.
 
-**This application is designed for 2K resoulution screen.**
+**This application is designed for a 2K resolution screen.**
 
-**Due to background image, This is inevitable.**
+**Due to the background image, this limitation is inevitable.**
 
-**Which means this application only works for 2K screen. Either 1K or 4K were both not supported and there's no plan to fix this right now.**
+**This means that the application only works for 2K screens. Neither 1K nor 4K resolutions are supported, and there are no plans to fix this right now.**
 
 ![img](https://github.com/XKaguya/STOTool/assets/96401952/02eaa90d-a557-43be-a7fd-434c24c395a6)
 
