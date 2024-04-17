@@ -12,20 +12,20 @@ A tool for checking the server status of Star Trek Online.
 
 # Features
 ## Initiative Ability
-* Real-Time news showing
+* Real-time news display
   
-* Real-Time maintence info showing
+* Real-time maintenance information display
 
-* Real-Time events showing
+* Real-time events display
 
 ## Passive Ability
-* Real-Time server status monitor
-* With a pipe server, This application is able to connect with any client to send information.
+* Real-time server status monitoring
+* Ability to connect with any client using a pipe server to send information
 
 # Usage
-1. You should register a Google Calendar API at [Google API](https://console.cloud.google.com/apis/credentials).
+1. Register for a Google Calendar API key at [Google API](https://console.cloud.google.com/apis/credentials).
 
-2. After that downlaod the credentials json file. And put that near the exe file. Like this:
+2. Download the credentials JSON file and place it near the executable file, like this:
 
 ![image](https://github.com/XKaguya/StarTrekOnline-ServerStatus/assets/96401952/76ec698e-f3ed-4305-adc7-6c9782616e3c)
 
