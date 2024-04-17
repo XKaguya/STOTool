@@ -15,18 +15,22 @@ namespace STOTool.Feature
         public static async Task<string> CaptureAndSaveAsync()
         {
             Logger.Debug("Capturing screenshot...");
-    
-            RenderTargetBitmap bitmap = await CaptureWindowAsync(App.MainWindowInstance);
+            
+            RenderTargetBitmap? bitmap = await CaptureWindowAsync(App.MainWindowInstance);
+            
             MemoryStream stream = await SaveBitmapToMemoryStreamAsync(bitmap);
-
+            
             Logger.Debug($"{stream.Length} bytes of screenshot saved to memory stream.");
-    
-            await SaveBitmapToFileAsync(bitmap, "img.png");
-            
+
+            // await SaveBitmapToFileAsync(bitmap, "img.png");
+        
             stream.Seek(0, SeekOrigin.Begin);
-            
+        
             string base64String = Convert.ToBase64String(stream.ToArray());
-    
+        
+            bitmap = null;
+            await stream.DisposeAsync();
+
             return base64String;
         }
         
@@ -61,23 +65,24 @@ namespace STOTool.Feature
         private static async Task<MemoryStream> SaveBitmapToMemoryStreamAsync(RenderTargetBitmap bitmap)
         {
             MemoryStream newStream = new MemoryStream();
-
-            await Application.Current.Dispatcher.Invoke(async () =>
             {
-                using (MemoryStream originalStream = new MemoryStream())
+                await Application.Current.Dispatcher.Invoke(async () =>
                 {
-                    BitmapEncoder encoder = new PngBitmapEncoder();
-                    encoder.Frames.Add(BitmapFrame.Create(bitmap));
-                    encoder.Save(originalStream);
+                    using (MemoryStream originalStream = new MemoryStream())
+                    {
+                        BitmapEncoder encoder = new PngBitmapEncoder();
+                        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                        encoder.Save(originalStream);
 
-                    originalStream.Position = 0;
+                        originalStream.Position = 0;
 
-                    await originalStream.CopyToAsync(newStream);
-                    newStream.Position = 0;
-                }
-            });
+                        await originalStream.CopyToAsync(newStream);
+                        newStream.Position = 0;
+                    }
+                });
 
-            return newStream;
+                return newStream;
+            }
         }
 
     }

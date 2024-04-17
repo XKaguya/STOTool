@@ -19,7 +19,7 @@ namespace STOTool.Feature
 
         private static int _retryCount = 0;
 
-        public static async Task<List<EventInfo>> GetRecentEventsAsync()
+        public static async Task<List<EventInfo>>? GetRecentEventsAsync()
         {
             try
             {

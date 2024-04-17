@@ -96,6 +96,19 @@ namespace STOTool.Generic
             }
             return false;
         }
+        
+        [STAThread]
+        public static bool Fatal(string message)
+        {
+            if (_currentLogLevel >= LogLevel.Fatal)
+            {
+                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [Exception Source: {GetCallerName()}] [FATAL]: {message}";
+                WriteLogToFile(logMessage);
+                LogAddLine(logMessage, Brushes.Red);
+                return true;
+            }
+            return false;
+        }
 
         private static void LogAddLine(string message, SolidColorBrush color)
         {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using STOTool.Class;
 using STOTool.Enum;
@@ -92,25 +93,37 @@ namespace STOTool.Generic
         {
             string result = "";
 
-            if (maintenanceInfo.ShardStatus == MaintenanceTimeType.Maintenance)
+            switch (maintenanceInfo.ShardStatus)
             {
-                result = $"The server is currently under maintenance. ETA finishes in {maintenanceInfo.Days} days {maintenanceInfo.Hours} hours {maintenanceInfo.Minutes} minutes {maintenanceInfo.Seconds} seconds.";
-            }
-            else if (maintenanceInfo.ShardStatus == MaintenanceTimeType.MaintenanceEnded)
-            {
-                result = "The maintenance has ended.";
-            }
-            else if (maintenanceInfo.ShardStatus == MaintenanceTimeType.WaitingForMaintenance)
-            {
-                result = $"The server is waiting for maintenance. ETA starts in {maintenanceInfo.Days} days {maintenanceInfo.Hours} hours {maintenanceInfo.Minutes} minutes {maintenanceInfo.Seconds} seconds.";
-            }
-            else
-            {
-                result = "";
+                case MaintenanceTimeType.Maintenance:
+                    result = $"The server is currently under maintenance. ETA finishes in {maintenanceInfo.Days} days {maintenanceInfo.Hours} hours {maintenanceInfo.Minutes} minutes {maintenanceInfo.Seconds} seconds.";
+                    break;
+                case MaintenanceTimeType.MaintenanceEnded:
+                    result = "The maintenance has ended.";
+                    break;
+                case MaintenanceTimeType.WaitingForMaintenance:
+                    result = $"The server is waiting for maintenance. ETA starts in {maintenanceInfo.Days} days {maintenanceInfo.Hours} hours {maintenanceInfo.Minutes} minutes {maintenanceInfo.Seconds} seconds.";
+                    break;
+                default:
+                    result = "";
+                    break;
             }
 
             return result;
         }
+
+        private static void OnDownloadFailed(object? sender, ExceptionEventArgs e)
+        {
+            Logger.Error("Download failed: " + e.ErrorException.Message);
+            
+            if (sender is BitmapImage bitmapImage)
+            {
+                Uri originalUri = bitmapImage.UriSource;
+                bitmapImage.UriSource = null;
+                bitmapImage.UriSource = originalUri;
+            }
+        }
+
         
         public static async Task UpdatePerSecond()
         {
@@ -154,6 +167,8 @@ namespace STOTool.Generic
                     
                     BitmapImage bitmapImage = new BitmapImage(new Uri(newsInfo[i].ImageUrl, UriKind.Absolute));
                     
+                    bitmapImage.DownloadFailed += OnDownloadFailed;
+                    
                     if (image.Source != bitmapImage)
                     {
                         image.Source = bitmapImage;
@@ -172,39 +187,69 @@ namespace STOTool.Generic
             try
             {
                 Logger.Info("Updating calendar info.");
-                
-                for (int i = 0; i < calendarInfo.Count && i < 3; i++)
+
+                if (calendarInfo == null)
                 {
-                    string titleName = "RecentNewsTitle" + (i + 1);
-                    string startTimeName = "RecentNewsStartTime" + (i + 1);
-                    string endTimeName = "RecentNewsEndTime" + (i + 1);
+                    return;
+                }
 
-                    TextBlock titleBlock = App.MainWindowInstance.FindName(titleName) as TextBlock;
-                    TextBlock startTimeBlock = App.MainWindowInstance.FindName(startTimeName) as TextBlock;
-                    TextBlock endTimeBlock = App.MainWindowInstance.FindName(endTimeName) as TextBlock;
-
-                    if (calendarInfo.Count > i)
+                if (calendarInfo.Count > 0)
+                {
+                    for (int i = 0; i < 3; i++)
                     {
-                        if (titleBlock.Text != calendarInfo[i].Summary)
-                        {
-                            titleBlock.Text = calendarInfo[i].Summary;
-                        }
+                        string titleName = "RecentNewsTitle" + (i + 1);
+                        string startTimeName = "RecentNewsStartTime" + (i + 1);
+                        string endTimeName = "RecentNewsEndTime" + (i + 1);
 
-                        if (startTimeBlock.Text != calendarInfo[i].StartDate)
-                        {
-                            startTimeBlock.Text = $"Start Date: {calendarInfo[i].StartDate}";
-                        }
+                        TextBlock titleBlock = App.MainWindowInstance.FindName(titleName) as TextBlock;
+                        TextBlock startTimeBlock = App.MainWindowInstance.FindName(startTimeName) as TextBlock;
+                        TextBlock endTimeBlock = App.MainWindowInstance.FindName(endTimeName) as TextBlock;
 
-                        if (endTimeBlock.Text != calendarInfo[i].EndDate)
+                        if (i < calendarInfo.Count && titleBlock != null && startTimeBlock != null && endTimeBlock != null)
                         {
-                            endTimeBlock.Text = $"End Date: {calendarInfo[i].EndDate}";
+                            if (titleBlock.Text != calendarInfo[i].Summary)
+                            {
+                                titleBlock.Text = calendarInfo[i].Summary;
+                            }
+
+                            if (startTimeBlock.Text != calendarInfo[i].StartDate)
+                            {
+                                startTimeBlock.Text = $"Start Date: {calendarInfo[i].StartDate}";
+                            }
+
+                            if (endTimeBlock.Text != calendarInfo[i].EndDate)
+                            {
+                                endTimeBlock.Text = $"End Date: {calendarInfo[i].EndDate}";
+                            }
+                        }
+                        else if (titleBlock != null && startTimeBlock != null && endTimeBlock != null)
+                        {
+                            Logger.Info("Calendar info is not enough.");
+                            
+                            titleBlock.Text = "";
+                            startTimeBlock.Text = "";
+                            endTimeBlock.Text = "";
                         }
                     }
-                    else
+                }
+                else
+                {
+                    for (int i = 0; i < 3; i++)
                     {
-                        titleBlock.Text = "";
-                        startTimeBlock.Text = "";
-                        endTimeBlock.Text = "";
+                        string titleName = "RecentNewsTitle" + (i + 1);
+                        string startTimeName = "RecentNewsStartTime" + (i + 1);
+                        string endTimeName = "RecentNewsEndTime" + (i + 1);
+
+                        TextBlock titleBlock = App.MainWindowInstance.FindName(titleName) as TextBlock;
+                        TextBlock startTimeBlock = App.MainWindowInstance.FindName(startTimeName) as TextBlock;
+                        TextBlock endTimeBlock = App.MainWindowInstance.FindName(endTimeName) as TextBlock;
+
+                        if (titleBlock != null && startTimeBlock != null && endTimeBlock != null)
+                        {
+                            titleBlock.Text = "";
+                            startTimeBlock.Text = "";
+                            endTimeBlock.Text = "";
+                        }
                     }
                 }
 

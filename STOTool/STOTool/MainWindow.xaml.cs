@@ -13,15 +13,25 @@ namespace STOTool
     
     public partial class MainWindow
     {
+        private const string Version = "1.0.1";
+        
         public static int Interval = 5000;
+        
+        private static int _maxRetry = 3;
         
         public MainWindow()
         {
             InitializeComponent();
             
+#if DEBUG
+            Api.SetProgramLevel(ProgramLevel.Debug);
+            Logger.SetLogLevel(LogLevel.Debug);
             LogWindow.Instance.Show();
-
+#endif
+            LogWindow.Instance.Hide();
             Task.Run(Init);
+
+            Logger.Info($"Welcome to STOTool. This is version {Version}. If you meet any problem, please contact me at github.");
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -44,7 +54,16 @@ namespace STOTool
             catch (Exception e)
             {
                 Logger.Error(e.Message + "\n" + e.StackTrace);
-                await Init();
+                
+                if (_maxRetry != 3)
+                {
+                    _maxRetry++;
+                    await Init();
+                }
+                else
+                {
+                    Logger.Fatal("Failed to run Init().");
+                }
             }
         }
 

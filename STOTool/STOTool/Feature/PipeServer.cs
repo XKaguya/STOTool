@@ -21,28 +21,36 @@ namespace STOTool.Feature
 
         public static async Task StartServerAsync()
         {
-            while (true)
+            try
             {
-                using (NamedPipeServerStream pipeServer = new NamedPipeServerStream(PipeName))
+                while (true)
                 {
-                    Logger.Info("Waiting for connection...");
-
-                    await pipeServer.WaitForConnectionAsync();
-
-                    Logger.Info("Pipe connected.");
-
-                    try
+                    using (NamedPipeServerStream pipeServer = new NamedPipeServerStream(PipeName))
                     {
-                        await ProcessClientMessageAsync(pipeServer);
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Info($"Error occurred: {ex.Message + ex.StackTrace}");
-                    }
+                        Logger.Info("Waiting for connection...");
 
-                    pipeServer.Disconnect();
-                    Logger.Info("Disconnected.");
+                        await pipeServer.WaitForConnectionAsync();
+
+                        Logger.Info("Pipe connected.");
+
+                        try
+                        {
+                            await ProcessClientMessageAsync(pipeServer);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Info($"Error occurred: {ex.Message + ex.StackTrace}");
+                        }
+
+                        pipeServer.Disconnect();
+                        Logger.Info("Disconnected.");
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+                Logger.Fatal(e.Message + e.StackTrace);
+                throw;
             }
         }
 
@@ -119,6 +127,8 @@ namespace STOTool.Feature
                     await pipeServer.WriteAsync(imageData, 0, imageData.Length);
                     
                     pipeServer.WaitForPipeDrain();
+                    
+                    GC.Collect();
     
                     Logger.Debug($"Screenshot sent successfully.");
                 }

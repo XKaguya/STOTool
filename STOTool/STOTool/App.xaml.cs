@@ -8,8 +8,8 @@ namespace STOTool
   /// </summary>
   public partial class App
   {
-      public static MainWindow? MainWindowInstance { get; private set; } = null;
-      
+      public static MainWindow? MainWindowInstance { get; private set; }
+
       protected override async void OnStartup(StartupEventArgs ev)
       {
           try
