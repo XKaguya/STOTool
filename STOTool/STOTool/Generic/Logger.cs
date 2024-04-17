@@ -58,6 +58,7 @@ namespace STOTool.Generic
                 LogAddLine(logMessage, Brushes.CornflowerBlue);
                 return true;
             }
+            
             return false;
         }
 
@@ -70,6 +71,7 @@ namespace STOTool.Generic
                 LogAddLine(logMessage, Brushes.Yellow);
                 return true;
             }
+            
             return false;
         }
 
@@ -82,6 +84,7 @@ namespace STOTool.Generic
                 LogAddLine(logMessage, Brushes.Red);
                 return true;
             }
+            
             return false;
         }
 
@@ -94,6 +97,7 @@ namespace STOTool.Generic
                 LogAddLine(logMessage, Brushes.LightSlateGray);
                 return true;
             }
+            
             return false;
         }
         
@@ -107,6 +111,7 @@ namespace STOTool.Generic
                 LogAddLine(logMessage, Brushes.Red);
                 return true;
             }
+            
             return false;
         }
 

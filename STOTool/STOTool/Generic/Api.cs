@@ -123,7 +123,6 @@ namespace STOTool.Generic
                 bitmapImage.UriSource = originalUri;
             }
         }
-
         
         public static async Task UpdatePerSecond()
         {
@@ -193,66 +192,33 @@ namespace STOTool.Generic
                     return;
                 }
 
-                if (calendarInfo.Count > 0)
+                for (int i = 0; i < 3; i++)
                 {
-                    for (int i = 0; i < 3; i++)
+                    string titleName = "RecentNewsTitle" + (i + 1);
+                    string startTimeName = "RecentNewsStartTime" + (i + 1);
+                    string endTimeName = "RecentNewsEndTime" + (i + 1);
+
+                    TextBlock titleBlock = App.MainWindowInstance.FindName(titleName) as TextBlock;
+                    TextBlock startTimeBlock = App.MainWindowInstance.FindName(startTimeName) as TextBlock;
+                    TextBlock endTimeBlock = App.MainWindowInstance.FindName(endTimeName) as TextBlock;
+
+                    if (titleBlock != null && startTimeBlock != null && endTimeBlock != null)
                     {
-                        string titleName = "RecentNewsTitle" + (i + 1);
-                        string startTimeName = "RecentNewsStartTime" + (i + 1);
-                        string endTimeName = "RecentNewsEndTime" + (i + 1);
-
-                        TextBlock titleBlock = App.MainWindowInstance.FindName(titleName) as TextBlock;
-                        TextBlock startTimeBlock = App.MainWindowInstance.FindName(startTimeName) as TextBlock;
-                        TextBlock endTimeBlock = App.MainWindowInstance.FindName(endTimeName) as TextBlock;
-
-                        if (i < calendarInfo.Count && titleBlock != null && startTimeBlock != null && endTimeBlock != null)
+                        if (i < calendarInfo.Count)
                         {
-                            if (titleBlock.Text != calendarInfo[i].Summary)
-                            {
-                                titleBlock.Text = calendarInfo[i].Summary;
-                            }
-
-                            if (startTimeBlock.Text != calendarInfo[i].StartDate)
-                            {
-                                startTimeBlock.Text = $"Start Date: {calendarInfo[i].StartDate}";
-                            }
-
-                            if (endTimeBlock.Text != calendarInfo[i].EndDate)
-                            {
-                                endTimeBlock.Text = $"End Date: {calendarInfo[i].EndDate}";
-                            }
+                            titleBlock.Text = calendarInfo[i].Summary;
+                            startTimeBlock.Text = $"Start Date: {calendarInfo[i].StartDate}";
+                            endTimeBlock.Text = $"End Date: {calendarInfo[i].EndDate}";
                         }
-                        else if (titleBlock != null && startTimeBlock != null && endTimeBlock != null)
+                        else
                         {
                             Logger.Info("Calendar info is not enough.");
-                            
                             titleBlock.Text = "";
                             startTimeBlock.Text = "";
                             endTimeBlock.Text = "";
                         }
                     }
                 }
-                else
-                {
-                    for (int i = 0; i < 3; i++)
-                    {
-                        string titleName = "RecentNewsTitle" + (i + 1);
-                        string startTimeName = "RecentNewsStartTime" + (i + 1);
-                        string endTimeName = "RecentNewsEndTime" + (i + 1);
-
-                        TextBlock titleBlock = App.MainWindowInstance.FindName(titleName) as TextBlock;
-                        TextBlock startTimeBlock = App.MainWindowInstance.FindName(startTimeName) as TextBlock;
-                        TextBlock endTimeBlock = App.MainWindowInstance.FindName(endTimeName) as TextBlock;
-
-                        if (titleBlock != null && startTimeBlock != null && endTimeBlock != null)
-                        {
-                            titleBlock.Text = "";
-                            startTimeBlock.Text = "";
-                            endTimeBlock.Text = "";
-                        }
-                    }
-                }
-
             }
             catch (Exception e)
             {
