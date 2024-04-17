@@ -33,8 +33,8 @@ A tool for check Star Trek Online game's server status.
 ![image](https://github.com/XKaguya/STOTool/assets/96401952/a71fbe08-9f74-43c2-90ed-d594a9ec91f6)
 
 # Known Issue
-* There's a memory leak issue.
-* There's a bug that sometime the news pic will be blank.
+* Currently have no known issue.
+* Memory leak and White pic has been fixed in version 1.0.1.
 
 
 
