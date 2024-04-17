@@ -43,8 +43,7 @@ namespace STOTool.Feature
                         CancellationToken.None,
                         new FileDataStore(credPath, true));
                 }
-
-
+                
                 var service = new CalendarService(new BaseClientService.Initializer()
                 {
                     HttpClientInitializer = credential,

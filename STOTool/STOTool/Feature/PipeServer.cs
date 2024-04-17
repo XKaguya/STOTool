@@ -12,7 +12,6 @@ namespace STOTool.Feature
 {
     public class PipeServer
     {
-
         private static readonly string PipeName;
         static PipeServer()
         {

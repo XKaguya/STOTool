@@ -10,7 +10,6 @@ namespace STOTool
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    
     public partial class MainWindow
     {
         private const string Version = "1.0.1";

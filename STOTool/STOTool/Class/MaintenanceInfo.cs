@@ -23,5 +23,4 @@ namespace STOTool.Class
             return $"Shard Status: {shardStatusString}, Maintenance Time: {timeString}";
         }
     }
-
 }

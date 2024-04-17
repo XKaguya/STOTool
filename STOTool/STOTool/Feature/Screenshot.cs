@@ -8,7 +8,6 @@ using STOTool.Generic;
 
 namespace STOTool.Feature
 {
-    
     public class Screenshot
     {
         [STAThread]
@@ -84,6 +83,5 @@ namespace STOTool.Feature
                 return newStream;
             }
         }
-
     }
 }

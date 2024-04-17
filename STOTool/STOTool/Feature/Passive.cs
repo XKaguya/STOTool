@@ -96,77 +96,65 @@ namespace STOTool.Feature
             
             MaintenanceInfo maintenanceInfo = await ServerStatus.CheckServerAsync();
 
-            if (maintenanceInfo.ShardStatus == MaintenanceTimeType.WaitingForMaintenance)
+            switch (maintenanceInfo.ShardStatus)
             {
-                if (!waitingForMaintenance)
-                {
-                    if (!waitForMaintenanceSent)
+                case MaintenanceTimeType.WaitingForMaintenance:
+                    if (!waitingForMaintenance)
                     {
-                        WriteCheckerJson(true, false, false, false, false, false);
-                        
-                        return PassiveEnum.WaitingForMaintenance;
+                        WriteCheckerJson(true, !waitForMaintenanceSent, false, false, false, false);
+                        if (!waitForMaintenanceSent)
+                        {
+                            return PassiveEnum.WaitingForMaintenance;
+                        }
+                        else
+                        {
+                            return PassiveEnum.WaitingForMaintenanceSent;
+                        }
                     }
                     else
                     {
-                        WriteCheckerJson(true, true, false, false, false, false);
-                        
                         return PassiveEnum.WaitingForMaintenanceSent;
                     }
-                }
-                else
-                {
-                    return PassiveEnum.WaitingForMaintenanceSent;
-                }
-            }
-            else if (maintenanceInfo.ShardStatus == MaintenanceTimeType.Maintenance)
-            {
-                if (!maintenanceStarted)
-                {
-                    if (!maintenanceStartedSent)
-                    {
-                        WriteCheckerJson(true, true, true, false, false, false);
 
-                        return PassiveEnum.MaintenanceStarted;
+                case MaintenanceTimeType.Maintenance:
+                    if (!maintenanceStarted)
+                    {
+                        WriteCheckerJson(true, true, !maintenanceStartedSent, false, false, false);
+                        if (!maintenanceStartedSent)
+                        {
+                            return PassiveEnum.MaintenanceStarted;
+                        }
+                        else
+                        {
+                            return PassiveEnum.MaintenanceStartedSent;
+                        }
                     }
                     else
                     {
-                        WriteCheckerJson(true, true, true, true, false, false);
-                        
                         return PassiveEnum.MaintenanceStartedSent;
                     }
-                }
-                else
-                {
-                    return PassiveEnum.MaintenanceStartedSent;
-                }
-            }
-            else if (maintenanceInfo.ShardStatus == MaintenanceTimeType.MaintenanceEnded)
-            {
-                if (!maintenanceEnded)
-                {
-                    if (!maintenanceEndedSent)
-                    {
-                        WriteCheckerJson(false, false, false, false, true, false);
 
-                        return PassiveEnum.MaintenanceEnded;
+                case MaintenanceTimeType.MaintenanceEnded:
+                    if (!maintenanceEnded)
+                    {
+                        WriteCheckerJson(false, false, false, false, true, !maintenanceEndedSent);
+                        if (!maintenanceEndedSent)
+                        {
+                            return PassiveEnum.MaintenanceEnded;
+                        }
+                        else
+                        {
+                            return PassiveEnum.MaintenanceEndedSent;
+                        }
                     }
                     else
                     {
-                        WriteCheckerJson(false, false, false, false, true, true);
-
                         return PassiveEnum.MaintenanceEndedSent;
                     }
-                }
-                else
-                {
-                    return PassiveEnum.MaintenanceEndedSent;
-                }
-            }
-            else
-            {
-                return PassiveEnum.Null;
+
+                default:
+                    return PassiveEnum.Null;
             }
         }
-    
     }
 }

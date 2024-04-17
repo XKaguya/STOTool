@@ -182,7 +182,6 @@ namespace STOTool.Generic
                     return cleanMethodName;
                 }
             }
-            
         }
     }
 }
