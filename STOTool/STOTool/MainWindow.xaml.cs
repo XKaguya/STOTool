@@ -1,15 +1,12 @@
 ﻿using System;
 using System.ComponentModel;
-using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Resources;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using STOTool.Enum;
-using STOTool.Feature;
 using STOTool.Generic;
 
 namespace STOTool
