@@ -3,8 +3,6 @@ using System.IO;
 using System.IO.Pipes;
 using System.Text;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using STOTool.Class;
 using STOTool.Enum;
 using STOTool.Generic;
 
@@ -24,25 +22,14 @@ namespace STOTool.Feature
             {
                 while (true)
                 {
-                    using (NamedPipeServerStream pipeServer = new NamedPipeServerStream(PipeName))
+                    using (var pipeServer = new NamedPipeServerStream(PipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous))
                     {
                         Logger.Info("Waiting for connection...");
 
                         await pipeServer.WaitForConnectionAsync();
-
                         Logger.Info("Pipe connected.");
 
-                        try
-                        {
-                            await ProcessClientMessageAsync(pipeServer);
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Info($"Error occurred: {ex.Message + ex.StackTrace}");
-                        }
-
-                        pipeServer.Disconnect();
-                        Logger.Info("Disconnected.");
+                        await ProcessClientAsync(pipeServer);
                     }
                 }
             }
@@ -52,15 +39,41 @@ namespace STOTool.Feature
                 throw;
             }
         }
-
-        private static async Task ProcessClientMessageAsync(PipeStream pipeServer)
+        
+        private static async Task ProcessClientAsync(NamedPipeServerStream pipeServer)
         {
-            byte[] buffer = new byte[256];
-            int bytesRead = await pipeServer.ReadAsync(buffer, 0, buffer.Length);
-            string receivedMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+            try
+            {
+                while (pipeServer.IsConnected)
+                {
+                    await Task.Delay(100); // 等待一段时间，可以根据需要调整
 
-            Logger.Info($"Received message from client: {receivedMessage}");
+                    byte[] buffer = new byte[256];
+                    int bytesRead = await pipeServer.ReadAsync(buffer, 0, buffer.Length);
+                    if (bytesRead == 0)
+                    {
+                        Logger.Info("Client disconnected.");
+                        break;
+                    }
 
+                    string receivedMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                    Logger.Info($"Received message from client: {receivedMessage}");
+
+                    await ProcessClientMessageAsync(pipeServer, receivedMessage);
+                }
+            }
+            catch (IOException ex)
+            {
+                Logger.Info($"Pipe is broken: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                Logger.Info($"Error occurred: {ex.Message}");
+            }
+        }
+
+        private static async Task ProcessClientMessageAsync(NamedPipeServerStream pipeServer, string receivedMessage)
+        {
             if (receivedMessage == "cL")
             {
                 await ClientCheckServerAlive(pipeServer);
@@ -72,6 +85,10 @@ namespace STOTool.Feature
             else if (receivedMessage == "sS2")
             {
                 await ClientAskForScreenshot(pipeServer);
+            }
+            else if (receivedMessage == "dI")
+            {
+                await ClientAskForDrawImage(pipeServer);
             }
         }
 
@@ -152,14 +169,49 @@ namespace STOTool.Feature
                     Logger.Info("Client awaiting for response. Sending now...");
 
                     byte[] messageBytes = Encoding.UTF8.GetBytes("Success");
-                    using (MemoryStream memoryStream = new MemoryStream(messageBytes))
+                    using MemoryStream memoryStream = new MemoryStream(messageBytes);
+
+                    await memoryStream.CopyToAsync(pipeServer);
+                        
+                    pipeServer.WaitForPipeDrain();
+                        
+                    Logger.Info("Sent response.");
+                }
+                else
+                {
+                    Logger.Error("Client cant write.");
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e.Message + e.StackTrace);
+                throw;
+            }
+        }
+        
+        private static async Task ClientAskForDrawImage(PipeStream pipeServer)
+        {
+            try
+            {
+                if (pipeServer.IsConnected && pipeServer.CanWrite)
+                {
+                    Logger.Info("Client awaiting for response. Sending now...");
+
+                    string result = await DrawNewsImage.DrawImageAsync();
+
+                    if (Helper.NullCheck(result))
                     {
-                        await memoryStream.CopyToAsync(pipeServer);
-                        
-                        pipeServer.WaitForPipeDrain();
-                        
-                        Logger.Info("Sent response.");
+                        Logger.Warning($"Image stream is null.");
+                        return;
                     }
+
+                    Logger.Info($"{result.Length}");
+                    
+                    await pipeServer.FlushAsync();
+                    
+                    await pipeServer.WriteAsync(Encoding.UTF8.GetBytes(result), 0, result.Length);
+                    
+                    pipeServer.WaitForPipeDrain();
                 }
                 else
                 {

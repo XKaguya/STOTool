@@ -20,8 +20,6 @@ namespace STOTool.Feature
             MemoryStream stream = await SaveBitmapToMemoryStreamAsync(bitmap);
             
             Logger.Debug($"{stream.Length} bytes of screenshot saved to memory stream.");
-
-            // await SaveBitmapToFileAsync(bitmap, "img.png");
         
             stream.Seek(0, SeekOrigin.Begin);
         
@@ -35,12 +33,12 @@ namespace STOTool.Feature
         
         private static async Task SaveBitmapToFileAsync(RenderTargetBitmap bitmap, string filePath)
         {
-            using (FileStream fileStream = new FileStream(filePath, FileMode.Create))
-            {
-                BitmapEncoder encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(bitmap));
-                encoder.Save(fileStream);
-            }
+            await using FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true);
+    
+            BitmapEncoder encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            
+            await Task.Run(() => encoder.Save(fileStream));
         }
 
         private static Task<RenderTargetBitmap> CaptureWindowAsync(Window window)
@@ -67,7 +65,7 @@ namespace STOTool.Feature
             {
                 await Application.Current.Dispatcher.Invoke(async () =>
                 {
-                    using (MemoryStream originalStream = new MemoryStream())
+                    using MemoryStream originalStream = new MemoryStream();
                     {
                         BitmapEncoder encoder = new PngBitmapEncoder();
                         encoder.Frames.Add(BitmapFrame.Create(bitmap));

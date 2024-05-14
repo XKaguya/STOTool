@@ -14,29 +14,25 @@ namespace STOTool.Feature
         public static async Task<List<NewsInfo>> GetNewsContentsAsync()
         {
             List<NewsInfo> newsContents = new List<NewsInfo>();
-
             string url = "https://www.arcgames.com/en/games/star-trek-online/news";
             string baseUrl = "https://www.arcgames.com";
 
             try
             {
-                using (HttpClient client = new HttpClient())
-                {
-                    HttpResponseMessage response = await client.GetAsync(url);
+                HttpResponseMessage response = await Helper.HttpClient.GetAsync(url);
 
-                    if (response.IsSuccessStatusCode)
-                    {
-                        string html = await response.Content.ReadAsStringAsync();
-                        HtmlDocument htmlDoc = new HtmlDocument();
-                        htmlDoc.LoadHtml(html);
-                        
-                        List<NewsInfo> parsedNews = ParseHtml(htmlDoc, baseUrl);
-                        newsContents.AddRange(parsedNews);
-                    }
-                    else
-                    {
-                        Logger.Error($"Request failed with status code: {response.StatusCode}");
-                    }
+                if (response.IsSuccessStatusCode)
+                {
+                    string html = await response.Content.ReadAsStringAsync();
+                    HtmlDocument htmlDoc = new HtmlDocument();
+                    htmlDoc.LoadHtml(html);
+
+                    List<NewsInfo> parsedNews = ParseHtml(htmlDoc, baseUrl);
+                    newsContents.AddRange(parsedNews);
+                }
+                else
+                {
+                    Logger.Error($"Request failed with status code: {response.StatusCode}");
                 }
             }
             catch (Exception ex)
@@ -51,7 +47,6 @@ namespace STOTool.Feature
         private static List<NewsInfo> ParseHtml(HtmlDocument htmlDoc, string baseUrl)
         {
             List<NewsInfo> newsList = new List<NewsInfo>();
-
             string newsXPath = "//div[contains(@class, 'news-content') and contains(@class, 'element')]";
             HtmlNodeCollection newsNodes = htmlDoc.DocumentNode.SelectNodes(newsXPath);
 
@@ -60,18 +55,23 @@ namespace STOTool.Feature
                 foreach (HtmlNode node in newsNodes)
                 {
                     string title = node.SelectSingleNode(".//h2[@class='news-title']")?.InnerText?.Trim() ?? "";
-                    string imageUrl = node.SelectSingleNode(".//img[@class='item-img']")?.GetAttributeValue("src", "") ?? "";
-                    string newsLink = baseUrl + node.SelectSingleNode(".//a[@class='read-more']")?.GetAttributeValue("href", "") ?? "";
+                    string imageUrl =
+                        node.SelectSingleNode(".//img[@class='item-img']")?.GetAttributeValue("src", "") ?? "";
+                    string newsLink =
+                        baseUrl + node.SelectSingleNode(".//a[@class='read-more']")?.GetAttributeValue("href", "") ??
+                        "";
                     string finalTitle = Regex.Replace(title, @"&\w+;", string.Empty);
 
-                    NewsInfo newsContent = new NewsInfo
+                    if (!string.IsNullOrEmpty(title) && !string.IsNullOrEmpty(imageUrl) &&
+                        !string.IsNullOrEmpty(newsLink))
                     {
-                        Title = finalTitle,
-                        ImageUrl = imageUrl,
-                        NewsLink = newsLink
-                    };
-
-                    newsList.Add(newsContent);
+                        newsList.Add(new NewsInfo
+                        {
+                            Title = finalTitle,
+                            ImageUrl = imageUrl,
+                            NewsLink = newsLink
+                        });
+                    }
                 }
             }
 

@@ -53,7 +53,7 @@ namespace STOTool.Generic
         {
             if (_currentLogLevel >= LogLevel.Info)
             {
-                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [INFO]: {message}";
+                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [SRC: {GetCallerName()}] [INFO]: {message}";
                 WriteLogToFile(logMessage);
                 LogAddLine(logMessage, Brushes.CornflowerBlue);
                 return true;
@@ -66,9 +66,9 @@ namespace STOTool.Generic
         {
             if (_currentLogLevel >= LogLevel.Warning)
             {
-                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [WARNING]: {message}";
+                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [SRC: {GetCallerName()}] [WARNING]: {message}";
                 WriteLogToFile(logMessage);
-                LogAddLine(logMessage, Brushes.Yellow);
+                LogAddLine(logMessage, Brushes.Maroon);
                 return true;
             }
             
@@ -88,13 +88,28 @@ namespace STOTool.Generic
             return false;
         }
 
+        [STAThread]
         public static bool Debug(string message)
         {
             if (_currentLogLevel >= LogLevel.Debug)
             {
-                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [DEBUG]: {message}";
+                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [SRC: {GetCallerName()}] [DEBUG]: {message}";
                 WriteLogToFile(logMessage);
                 LogAddLine(logMessage, Brushes.LightSlateGray);
+                return true;
+            }
+            
+            return false;
+        }
+        
+        [STAThread]
+        public static bool Trace(string message)
+        {
+            if (_currentLogLevel >= LogLevel.Trace)
+            {
+                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [SRC: {GetCallerName()}] [TRACE]: {message}";
+                WriteLogToFile(logMessage);
+                LogAddLine(logMessage, Brushes.Gold);
                 return true;
             }
             
@@ -125,6 +140,8 @@ namespace STOTool.Generic
                 }
                 else
                 {
+                    _logCount++;
+                    
                     Paragraph paragraph = new Paragraph(new Run(message));
                     paragraph.Foreground = color;
                     _logRichTextBox.Document.Blocks.Add(paragraph);
@@ -171,7 +188,11 @@ namespace STOTool.Generic
                 StackFrame callerFrame = new StackFrame(frameCount);
                 MethodBase callerMethod = callerFrame.GetMethod();
 
-                if (callerMethod.DeclaringType.Name == currentMethod.DeclaringType.Name || callerMethod.DeclaringType.Namespace != "STOTool")
+                if (callerMethod == null)
+                {
+                    return "Unknown Caller";
+                }
+                else if (callerMethod.DeclaringType.Name == currentMethod.DeclaringType.Name || callerMethod.DeclaringType.Namespace != "STOTool")
                 {
                     continue;
                 }
