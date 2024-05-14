@@ -16,7 +16,7 @@ namespace STOTool
     /// </summary>
     public partial class MainWindow
     {
-        private const string Version = "1.1.0";
+        private const string Version = "1.1.1";
         public static int Interval = 5000;
         private static int _maxRetry = 3;
         

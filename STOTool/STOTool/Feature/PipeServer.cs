@@ -90,6 +90,10 @@ namespace STOTool.Feature
             {
                 await ClientAskForDrawImage(pipeServer);
             }
+            else if (receivedMessage == "rF")
+            {
+                await ClientAskRefreshCache();
+            }
         }
 
         private static async Task ClientAskForPassiveType(PipeStream pipeServer)
@@ -181,6 +185,22 @@ namespace STOTool.Feature
                 {
                     Logger.Error("Client cant write.");
                 }
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e.Message + e.StackTrace);
+                throw;
+            }
+        }
+        
+        private static async Task ClientAskRefreshCache()
+        {
+            try
+            {
+                await Task.Run(async () =>
+                {
+                    await Cache.RemoveAll();
+                });
             }
             catch (Exception e)
             {

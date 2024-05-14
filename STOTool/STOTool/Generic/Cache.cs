@@ -11,6 +11,7 @@ namespace STOTool.Generic
     {
         private static readonly IMemoryCache MemoryCache = new MemoryCache(new MemoryCacheOptions());
         private static readonly string CacheKey = "CachedInfo";
+        private static readonly string FastCacheKey = "FastCashe";
         private static readonly TimeSpan CacheExpiration = TimeSpan.FromMinutes(10);
         private static readonly TimeSpan FastCacheExpiration = TimeSpan.FromMinutes(1);
         
@@ -31,6 +32,8 @@ namespace STOTool.Generic
                 NewsInfos = await newsTask,
                 EventInfos = await eventTask
             };
+            
+            MemoryCache.Remove(CacheKey);
 
             MemoryCache.Set(CacheKey, cachedInfo, CacheExpiration);
 
@@ -39,26 +42,23 @@ namespace STOTool.Generic
 
         public static async Task<MaintenanceInfo> GetFastCachedMaintenanceInfoAsync()
         {
-            if (MemoryCache.TryGetValue(CacheKey, out MaintenanceInfo maintenanceInfo))
+            if (MemoryCache.TryGetValue(FastCacheKey, out MaintenanceInfo maintenanceInfo))
             {
                 return maintenanceInfo;
             }
             
             MaintenanceInfo maintenanceTask = await ServerStatus.CheckServerAsync();
 
-            if (maintenanceInfo == null)
+            if (Helper.NullCheck(maintenanceTask))
             {
-                return null;
+                return null!;
             }
             
-            MemoryCache.Set(CacheKey, maintenanceInfo, FastCacheExpiration);
+            MemoryCache.Remove(FastCacheKey);
             
-            return maintenanceInfo;
-        }
-
-        public static T Get<T>(string key)
-        {
-            return MemoryCache.Get<T>(key);
+            MemoryCache.Set(FastCacheKey, maintenanceTask, FastCacheExpiration);
+            
+            return maintenanceTask;
         }
 
         public static void Set<T>(string key, T value, TimeSpan absoluteExpirationRelativeToNow)
@@ -70,10 +70,21 @@ namespace STOTool.Generic
         {
             return MemoryCache.TryGetValue(key, out value);
         }
-
-        public static void Remove(string key)
+        
+        public static async Task RemoveAll()
         {
-            MemoryCache.Remove(key);
+            try
+            {
+                await Task.Run(() =>
+                {
+                    MemoryCache.Remove(FastCacheKey);
+                    MemoryCache.Remove(CacheKey);
+                });
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex.Message + ex.StackTrace);
+            }
         }
     }
 }
