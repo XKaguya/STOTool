@@ -59,11 +59,11 @@ namespace STOTool.Generic
                 {
                     if (status == ShardStatus.Up)
                     {
-                        App.MainWindowInstance.BackGround.ImageSource = new BitmapImage( new Uri("pack://application:,,,/STOTool;component/Background/Bg_Up.png"));
+                        App.MainWindowInstance!.BackGround.ImageSource = new BitmapImage( new Uri("pack://application:,,,/STOTool;component/Background/Bg_Up.png"));
                     }
                     else
                     {
-                        App.MainWindowInstance.BackGround.ImageSource = new BitmapImage(new Uri("pack://application:,,,/STOTool;component/Background/Bg_Down.png"));
+                        App.MainWindowInstance!.BackGround.ImageSource = new BitmapImage(new Uri("pack://application:,,,/STOTool;component/Background/Bg_Down.png"));
                     }
                 }
             }
@@ -89,7 +89,7 @@ namespace STOTool.Generic
             }
         }
 
-        private static string MaintenanceInfoToString(MaintenanceInfo maintenanceInfo)
+        public static string MaintenanceInfoToString(MaintenanceInfo maintenanceInfo)
         {
             string result = "";
 
@@ -128,14 +128,18 @@ namespace STOTool.Generic
         {
             try
             {
-                List<EventInfo> calendarInfo = await Feature.Calendar.GetRecentEventsAsync();
-                List<NewsInfo> newsInfo = await NewsProcessor.GetNewsContentsAsync();
+                CachedInfo cachedInfo = await Cache.GetCachedInfoAsync();
                 MaintenanceInfo maintenanceInfo = await ServerStatus.CheckServerAsync();
 
-                App.MainWindowInstance.Dispatcher.InvokeAsync(() =>
+                if (Helper.NullCheck(cachedInfo))
                 {
-                    UpdateNews(newsInfo);
-                    UpdateCalendar(calendarInfo);
+                    return;
+                }
+
+                App.MainWindowInstance!.Dispatcher.InvokeAsync(() =>
+                {
+                    UpdateNews(cachedInfo.NewsInfos!);
+                    UpdateCalendar(cachedInfo.EventInfos!);
                     UpdateMaintenance(maintenanceInfo);
                 });
             }
@@ -155,20 +159,21 @@ namespace STOTool.Generic
                 for (int i = 0; i < newsInfo.Count && i < 9; i++)
                 {
                     string textBlockName = "NewsTitle" + (i + 1);
-                    TextBlock textBlock = App.MainWindowInstance.FindName(textBlockName) as TextBlock;
-                    if (textBlock.Text != newsInfo[i].Title)
+                    TextBlock? textBlock = App.MainWindowInstance!.FindName(textBlockName) as TextBlock;
+                    
+                    if (textBlock!.Text != newsInfo[i].Title)
                     {
                         textBlock.Text = newsInfo[i].Title;
                     }
 
                     string imageSourceName = "News" + (i + 1);
-                    Image image = App.MainWindowInstance.FindName(imageSourceName) as Image;
+                    Image? image = App.MainWindowInstance!.FindName(imageSourceName) as Image;
                     
-                    BitmapImage bitmapImage = new BitmapImage(new Uri(newsInfo[i].ImageUrl, UriKind.Absolute));
+                    BitmapImage bitmapImage = new BitmapImage(new Uri(newsInfo[i].ImageUrl!, UriKind.Absolute));
                     
                     bitmapImage.DownloadFailed += OnDownloadFailed;
                     
-                    if (image.Source != bitmapImage)
+                    if (image!.Source != bitmapImage)
                     {
                         image.Source = bitmapImage;
                     }
@@ -187,7 +192,7 @@ namespace STOTool.Generic
             {
                 Logger.Info("Updating calendar info.");
 
-                if (calendarInfo == null)
+                if (calendarInfo == null!)
                 {
                     return;
                 }
@@ -198,9 +203,9 @@ namespace STOTool.Generic
                     string startTimeName = "RecentNewsStartTime" + (i + 1);
                     string endTimeName = "RecentNewsEndTime" + (i + 1);
 
-                    TextBlock titleBlock = App.MainWindowInstance.FindName(titleName) as TextBlock;
-                    TextBlock startTimeBlock = App.MainWindowInstance.FindName(startTimeName) as TextBlock;
-                    TextBlock endTimeBlock = App.MainWindowInstance.FindName(endTimeName) as TextBlock;
+                    TextBlock? titleBlock = App.MainWindowInstance!.FindName(titleName) as TextBlock;
+                    TextBlock? startTimeBlock = App.MainWindowInstance!.FindName(startTimeName) as TextBlock;
+                    TextBlock? endTimeBlock = App.MainWindowInstance!.FindName(endTimeName) as TextBlock;
 
                     if (titleBlock != null && startTimeBlock != null && endTimeBlock != null)
                     {
@@ -212,7 +217,8 @@ namespace STOTool.Generic
                         }
                         else
                         {
-                            Logger.Info("Calendar info is not enough.");
+                            Logger.Debug("Calendar info is not enough.");
+                            
                             titleBlock.Text = "";
                             startTimeBlock.Text = "";
                             endTimeBlock.Text = "";
@@ -233,10 +239,12 @@ namespace STOTool.Generic
             {
                 Logger.Info("Updating maintenance info.");
                 
-                TextBlock maintenanceMessage = App.MainWindowInstance.FindName("MaintenanceInfo") as TextBlock;
+                TextBlock? maintenanceMessage = App.MainWindowInstance!.FindName("MaintenanceInfo") as TextBlock;
                 if (maintenanceMessage != null)
                 {
                     maintenanceMessage.Text = MaintenanceInfoToString(maintenanceInfo);
+                    
+                    Logger.Info(maintenanceInfo.ToString());
                 }
 
                 UpdateServerStatus(ConvertMaintenanceTimeToShardStatus(maintenanceInfo.ShardStatus));
