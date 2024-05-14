@@ -32,9 +32,5 @@ A tool for checking the server status of Star Trek Online.
 # Server Client link
 ![image](https://github.com/XKaguya/STOTool/assets/96401952/a71fbe08-9f74-43c2-90ed-d594a9ec91f6)
 
-# Known Issue
-* Currently have no known issue.
-* Memory leak and White pic has been fixed in version 1.0.1.
-
 
 
