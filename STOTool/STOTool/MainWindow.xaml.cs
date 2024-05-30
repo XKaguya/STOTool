@@ -6,7 +6,9 @@ using System.Windows;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using STOTool.Class;
 using STOTool.Enum;
+using STOTool.Feature;
 using STOTool.Generic;
 
 namespace STOTool
@@ -16,44 +18,50 @@ namespace STOTool
     /// </summary>
     public partial class MainWindow
     {
-        private const string Version = "1.1.1";
+        private const string Version = "1.1.2";
+      
         public static int Interval = 5000;
         private static int _maxRetry = 3;
         
         public static FontFamily StFontFamily { get; private set; }
         
-        private static readonly string backgroundImageUri_Down = "/STOTool;component/Background/Bg_Down.png";
-        private static readonly string backgroundImageUri_Up = "/STOTool;component/Background/Bg_Up.png";
+        private static readonly string BackgroundImageUriDown = "/STOTool;component/Background/Bg_Down.png";
+        private static readonly string BackgroundImageUriUp = "/STOTool;component/Background/Bg_Up.png";
 
         public static Image<Rgba32>? BackgroundImageDown { get; private set; } = null;
         public static Image<Rgba32>? BackgroundImageUp { get; private set; } = null;
+
+#if DEBUG
+        public static int TestInt { get; set; } = 1;
+#endif
         
         public MainWindow()
         {
             InitializeComponent();
             LogWindow.Instance.Hide();
             PreInit();
-            
 #if DEBUG
             Logger.Debug("You're in DEBUG mode.");
             Api.SetProgramLevel(ProgramLevel.Debug);
             Logger.SetLogLevel(LogLevel.Debug);
-            
-            /*TestMethods();*/
-            
-            Logger.Debug("Initialization method has been disabled. This is test only.");
+            LogWindow.Instance.Show();
 #else
-            Task.Run(Init);
+            Task.Run(PostInit);
+            Task.Run(DelayMethods);
 
             Logger.Info($"Welcome to STOTool. This is version {Version}. If you meet any problem, please contact me at github.");
 #endif
         }
 
-        private static async Task TestMethods()
+        private static async Task DelayMethods()
         {
             try
             {
-
+                await Task.Delay(TimeSpan.FromMinutes(10));
+                
+                CachedNews screenshotTask = await Helper.GetAllScreenshot();
+                
+                Cache.UpdateCache(screenshotTask);
             }
             catch (Exception ex)
             {
@@ -68,29 +76,31 @@ namespace STOTool
             Environment.Exit(0);
         }
 
-        private static async Task Init()
+        private static async Task PostInit()
         {
             try
             {
-                while (true)
-                {
-                    await Task.Delay(Interval);
-                    await Api.UpdatePerSecond();
-                }
+                Logger.Info($"Proceeding PostInit phase.");
+                
+                await Helper.InitBrowser();
+
+                var cacheNewsTask = Cache.GetCachedNewsAsync();
+                var cacheInfoTask = Cache.GetCachedInfoAsync();
+                var cacheMaintenanceTask = Cache.GetFastCachedMaintenanceInfoAsync();
+                var screenshotTask = Helper.GetAllScreenshot();
+
+                await Task.WhenAll(cacheNewsTask, cacheInfoTask, cacheMaintenanceTask, screenshotTask);
+                
+                Logger.Info($"Compelted.");
+
+                var result = screenshotTask.Result;
+
+                Cache.UpdateCache(result);
             }
             catch (Exception e)
             {
-                Logger.Error(e.Message + "\n" + e.StackTrace);
-                
-                if (_maxRetry != 3)
-                {
-                    _maxRetry++;
-                    await Init();
-                }
-                else
-                {
-                    Logger.Fatal("Failed to run Init().");
-                }
+                Logger.Error(e.Message + e.StackTrace);
+                throw;
             }
         }
 
@@ -130,8 +140,8 @@ namespace STOTool
                     StFontFamily = fontCollection.Add(fontStream);
                 }
                 
-                var resourceInfoDown = Application.GetResourceStream(new Uri(backgroundImageUri_Down, UriKind.Relative));
-                var resourceInfoUp = Application.GetResourceStream(new Uri(backgroundImageUri_Up, UriKind.Relative));
+                var resourceInfoDown = Application.GetResourceStream(new Uri(BackgroundImageUriDown, UriKind.Relative));
+                var resourceInfoUp = Application.GetResourceStream(new Uri(BackgroundImageUriUp, UriKind.Relative));
 
                 if (resourceInfoDown == null || resourceInfoUp == null)
                 {
