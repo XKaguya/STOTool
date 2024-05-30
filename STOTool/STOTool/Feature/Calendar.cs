@@ -15,15 +15,8 @@ namespace STOTool.Feature
 {
     public class Calendar
     {
-        private const string CacheKey = "RecentEvents";
-
         public static async Task<List<EventInfo>>? GetRecentEventsAsync()
         {
-            if (Cache.TryGetValue(CacheKey, out List<EventInfo>? cachedEvents) && cachedEvents != null)
-            {
-                return cachedEvents;
-            }
-
             try
             {
                 string[] scopes = { CalendarService.Scope.CalendarReadonly };
@@ -99,8 +92,6 @@ namespace STOTool.Feature
 
                     eventInfos.Add(eventInfo);
                 }
-                
-                Cache.Set(CacheKey, eventInfos, TimeSpan.FromDays(1));
 
                 return eventInfos;
             }

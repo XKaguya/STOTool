@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Playwright;
 using STOTool.Class;
 using STOTool.Feature;
 
@@ -11,7 +13,10 @@ namespace STOTool.Generic
     {
         private static readonly IMemoryCache MemoryCache = new MemoryCache(new MemoryCacheOptions());
         private static readonly string CacheKey = "CachedInfo";
+        private static readonly string NewsCacheKey = "NewsCache";
+        private static readonly string FastCacheKey = "FastCashe";
         private static readonly TimeSpan CacheExpiration = TimeSpan.FromMinutes(10);
+        private static readonly TimeSpan NewsCacheExpiration = TimeSpan.FromDays(1);
         private static readonly TimeSpan FastCacheExpiration = TimeSpan.FromMinutes(1);
         
         public static async Task<CachedInfo> GetCachedInfoAsync()
@@ -31,6 +36,8 @@ namespace STOTool.Generic
                 NewsInfos = await newsTask,
                 EventInfos = await eventTask
             };
+            
+            MemoryCache.Remove(CacheKey);
 
             MemoryCache.Set(CacheKey, cachedInfo, CacheExpiration);
 
@@ -39,26 +46,54 @@ namespace STOTool.Generic
 
         public static async Task<MaintenanceInfo> GetFastCachedMaintenanceInfoAsync()
         {
-            if (MemoryCache.TryGetValue(CacheKey, out MaintenanceInfo maintenanceInfo))
+            if (MemoryCache.TryGetValue(FastCacheKey, out MaintenanceInfo maintenanceInfo))
             {
                 return maintenanceInfo;
             }
             
             MaintenanceInfo maintenanceTask = await ServerStatus.CheckServerAsync();
 
-            if (maintenanceInfo == null)
+            if (Helper.NullCheck(maintenanceTask))
             {
-                return null;
+                return null!;
             }
             
-            MemoryCache.Set(CacheKey, maintenanceInfo, FastCacheExpiration);
+            MemoryCache.Remove(FastCacheKey);
             
-            return maintenanceInfo;
+            MemoryCache.Set(FastCacheKey, maintenanceTask, FastCacheExpiration);
+            
+            return maintenanceTask;
+        }
+        
+        public static async Task<CachedNews> GetCachedNewsAsync()
+        {
+            if (MemoryCache.TryGetValue(NewsCacheKey, out CachedNews cachedNews))
+            {
+                return cachedNews;
+            }
+
+            Task<List<NewsInfo>> newsTask = NewsProcessor.GetNewsContentsAsync();
+            var newsList = await newsTask;
+
+            cachedNews = new CachedNews();
+            cachedNews.NewsUrls = newsList.ConvertAll(input => input.NewsLink);
+            cachedNews.ScreenshotData = new();
+
+            foreach (var link in cachedNews.NewsUrls)
+            {
+                cachedNews.ScreenshotData[link] = null;
+            }
+
+            MemoryCache.Remove(NewsCacheKey);
+            MemoryCache.Set(NewsCacheKey, cachedNews, NewsCacheExpiration);
+
+            return cachedNews;
         }
 
-        public static T Get<T>(string key)
+        public static void UpdateCache(CachedNews cachedNews)
         {
-            return MemoryCache.Get<T>(key);
+            MemoryCache.Remove(NewsCacheKey); 
+            MemoryCache.Set(NewsCacheKey, cachedNews, NewsCacheExpiration);
         }
 
         public static void Set<T>(string key, T value, TimeSpan absoluteExpirationRelativeToNow)
@@ -70,10 +105,21 @@ namespace STOTool.Generic
         {
             return MemoryCache.TryGetValue(key, out value);
         }
-
-        public static void Remove(string key)
+        
+        public static async Task RemoveAll()
         {
-            MemoryCache.Remove(key);
+            try
+            {
+                await Task.Run(() =>
+                {
+                    MemoryCache.Remove(FastCacheKey);
+                    MemoryCache.Remove(CacheKey);
+                });
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex.Message + ex.StackTrace);
+            }
         }
     }
 }

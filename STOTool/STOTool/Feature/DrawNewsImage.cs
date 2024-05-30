@@ -46,13 +46,20 @@ namespace STOTool.Feature
             string maintenanceMessage = Api.MaintenanceInfoToString(maintenanceInfo);
 
 #if DEBUG
-            maintenanceMessage = "TEST TEST TEST TEST TEST";
+            if (MainWindow.TestInt == 1)
+            {
+                maintenanceMessage = "TEST TEST TEST TEST TEST";
+
+                MainWindow.TestInt = 0;
+            }
+            
+            maintenanceMessage = "TESTTESTTESTTESTTEST";
             
             EventInfo testInfo = new EventInfo()
             {
-                EndDate = "testtesttest",
-                StartDate = "testtesttest",
-                Summary = "testtesttest",
+                EndDate = "TESTTESTTESTTESTTEST",
+                StartDate = "TESTTESTTESTTESTTEST",
+                Summary = "TESTTESTTESTTESTTEST",
             };
 
             List<EventInfo> eventInfoTest = new List<EventInfo>();
@@ -65,11 +72,15 @@ namespace STOTool.Feature
             int xE = x;
             int yE = y;
             
+#if DEBUG
+            foreach (var eventInfo in eventInfoTest)
+#else
             foreach (var eventInfo in eventInfos)
+#endif
             {
-                backgroundImage.Mutate(ctx => ctx.DrawText(eventInfo.Summary!, MainWindow.StFontFamily.CreateFont(50), Color.Gray, new PointF(xE - 50, yE - 400)));
-                backgroundImage.Mutate(ctx => ctx.DrawText(eventInfo.StartDate!, MainWindow.StFontFamily.CreateFont(50), Color.White, new PointF(xE - 50, yE - 350)));
-                backgroundImage.Mutate(ctx => ctx.DrawText(eventInfo.EndDate!, MainWindow.StFontFamily.CreateFont(50), Color.White, new PointF(xE - 50, yE - 300)));
+                backgroundImage.Mutate(ctx => ctx.DrawText(Helper.StringTrim(eventInfo.Summary!, 15), MainWindow.StFontFamily.CreateFont(50), Color.Gray, new PointF(xE - 50, yE - 400)));
+                backgroundImage.Mutate(ctx => ctx.DrawText(Helper.StringTrim(eventInfo.StartDate!, 15), MainWindow.StFontFamily.CreateFont(50), Color.White, new PointF(xE - 50, yE - 350)));
+                backgroundImage.Mutate(ctx => ctx.DrawText(Helper.StringTrim(eventInfo.EndDate!, 15), MainWindow.StFontFamily.CreateFont(50), Color.White, new PointF(xE - 50, yE - 300)));
 
                 xE += 250;
             }
@@ -81,7 +92,7 @@ namespace STOTool.Feature
             {
                 // Draw news images and titles.
                 backgroundImage.Mutate(ctx => ctx.DrawImage(newsImage, new Point(x, y), 1f));
-                backgroundImage.Mutate(ctx => ctx.DrawText(newsTitles[count], MainWindow.StFontFamily.CreateFont(50), Color.White, new PointF(x, y + 230)));
+                backgroundImage.Mutate(ctx => ctx.DrawText(Helper.StringTrim(newsTitles[count], 32), MainWindow.StFontFamily.CreateFont(50), Color.White, new PointF(x, y + 230)));
 
                 x += 432;
 
@@ -99,7 +110,9 @@ namespace STOTool.Feature
                 }
             }
             
-            // await backgroundImage.SaveAsync("test.png");
+#if DEBUG
+            await backgroundImage.SaveAsync("test.png");
+#endif
 
             string result = backgroundImage.ToBase64String(PngFormat.Instance);
 
