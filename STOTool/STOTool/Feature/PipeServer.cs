@@ -112,10 +112,6 @@ namespace STOTool.Feature
                     await ClientAskRefreshCache();
                 }
             }
-            else if (receivedMessage == "rF")
-            {
-                await ClientAskRefreshCache();
-            }
         }
 
         private static async Task ClientAskForPassiveType(PipeStream pipeServer)
@@ -266,7 +262,7 @@ namespace STOTool.Feature
                 throw;
             }
         }
-      
+        
         private static async Task ClientAskForDrawImage(PipeStream pipeServer)
         {
             try

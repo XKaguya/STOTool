@@ -8,7 +8,6 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using STOTool.Class;
 using STOTool.Enum;
-using STOTool.Feature;
 using STOTool.Generic;
 
 namespace STOTool
@@ -19,7 +18,6 @@ namespace STOTool
     public partial class MainWindow
     {
         private const string Version = "1.1.2";
-      
         public static int Interval = 5000;
         private static int _maxRetry = 3;
         
@@ -57,7 +55,7 @@ namespace STOTool
         {
             try
             {
-                await Task.Delay(TimeSpan.FromMinutes(10));
+                await Task.Delay(TimeSpan.FromMinutes(5));
                 
                 CachedNews screenshotTask = await Helper.GetAllScreenshot();
                 

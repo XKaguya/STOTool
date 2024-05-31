@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Playwright;
 using STOTool.Class;
 using STOTool.Feature;
 
@@ -15,9 +13,8 @@ namespace STOTool.Generic
         private static readonly string CacheKey = "CachedInfo";
         private static readonly string NewsCacheKey = "NewsCache";
         private static readonly string FastCacheKey = "FastCashe";
-      
-        private static readonly TimeSpan CacheExpiration = TimeSpan.FromMinutes(10);
-        private static readonly TimeSpan NewsCacheExpiration = TimeSpan.FromDays(1);
+        private static readonly TimeSpan CacheExpiration = TimeSpan.FromMinutes(5);
+        private static readonly TimeSpan NewsCacheExpiration = TimeSpan.FromMinutes(5);
         private static readonly TimeSpan FastCacheExpiration = TimeSpan.FromMinutes(1);
         
         public static async Task<CachedInfo> GetCachedInfoAsync()
@@ -95,10 +92,6 @@ namespace STOTool.Generic
         {
             MemoryCache.Remove(NewsCacheKey); 
             MemoryCache.Set(NewsCacheKey, cachedNews, NewsCacheExpiration);
-            
-            MemoryCache.Set(FastCacheKey, maintenanceTask, FastCacheExpiration);
-            
-            return maintenanceTask;
         }
 
         public static void Set<T>(string key, T value, TimeSpan absoluteExpirationRelativeToNow)
@@ -119,6 +112,7 @@ namespace STOTool.Generic
                 {
                     MemoryCache.Remove(FastCacheKey);
                     MemoryCache.Remove(CacheKey);
+                    MemoryCache.Remove(NewsCacheKey);
                 });
             }
             catch (Exception ex)

@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using Microsoft.Playwright;
 using STOTool.Class;
 using STOTool.Generic;
 
