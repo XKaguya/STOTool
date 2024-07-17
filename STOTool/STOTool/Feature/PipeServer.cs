@@ -215,10 +215,7 @@ namespace STOTool.Feature
         {
             try
             {
-                await Task.Run(async () =>
-                {
-                    await Cache.RemoveAll();
-                });
+                await Cache.RemoveAll();
             }
             catch (Exception e)
             {

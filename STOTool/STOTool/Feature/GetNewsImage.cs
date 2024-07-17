@@ -7,27 +7,27 @@ namespace STOTool.Feature
 {
     public class GetNewsImage
     {
-        private static async Task<byte[]> GetScreenshot(string url)
+        private static async Task<byte[]>? GetScreenshot(string url)
         {
             try
             {
-                if (Helper._browser == null || Helper._page == null)
-                {
-                    await Helper.InitBrowser();
-                }
-                
                 CachedNews cachedNews = await Cache.GetCachedNewsAsync();
 
-                if (cachedNews.ScreenshotData[url] != null && cachedNews.ScreenshotData.TryGetValue(url, out var screenshotData))
+                if (Helper.NullCheck(cachedNews))
                 {
-                    Logger.Info("Cache hit");
-                    
+                    return null;
+                }
+
+                if (cachedNews.ScreenshotData!.TryGetValue(url, out var screenshotData))
+                {
+                    Logger.Info($"Cache hit: {url}");
+
                     return screenshotData;
                 }
                 else
                 {
-                    Logger.Info("Cache miss");
-                    return await Helper.GetWebsiteScreenshot(cachedNews, url);
+                    Logger.Info($"Cache miss, Theres {cachedNews.ScreenshotData.Count} inside Cache. Awaiting for new cache.");
+                    return await Helper.GetWebsiteScreenshot(url);
                 }
             }
             catch (Exception e)
@@ -42,12 +42,13 @@ namespace STOTool.Feature
             try
             {
                 string url = await GetNewsLink(index);
-
-                Logger.Info(url);
                 
                 byte[] screenshotData = await GetScreenshot(url);
 
-                Logger.Info(screenshotData.Length.ToString());
+                if (screenshotData == null)
+                {
+                    return "null";
+                }
 
                 string base64String = Convert.ToBase64String(screenshotData);
 
@@ -63,8 +64,13 @@ namespace STOTool.Feature
         private static async Task<string> GetNewsLink(int index)
         {
             CachedNews cachedNews = await Cache.GetCachedNewsAsync();
+            
+            if (Helper.NullCheck(cachedNews))
+            {
+                return null;
+            }
 
-            if (index > cachedNews.NewsUrls.Count)
+            if (index > cachedNews.NewsUrls!.Count)
             {
                 Logger.Error("Index out of range.");
                 return cachedNews.NewsUrls[0];

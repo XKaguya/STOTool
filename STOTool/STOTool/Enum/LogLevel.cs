@@ -2,6 +2,7 @@
 {
     public enum LogLevel
     {
+        Critical,
         Fatal,
         Info,
         Warning,

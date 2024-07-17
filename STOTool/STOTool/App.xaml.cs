@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using System.Windows;
+using STOTool.Generic;
 
 namespace STOTool
 {
@@ -15,20 +17,48 @@ namespace STOTool
       {
           try
           {
+              AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+              DispatcherUnhandledException += App_DispatcherUnhandledException;
+              TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException!;
+              
               base.OnStartup(ev);
               
               KillExistingInstances();
           
               MainWindowInstance = new MainWindow();
-              MainWindowInstance.Show();
+              MainWindowInstance.Hide();
 
               await Feature.PipeServer.StartServerAsync();
           }
           catch (Exception e)
           {
-              Console.WriteLine(e);
+              MessageBox.Show(e.Message + e.StackTrace);
               throw;
           }
+      }
+      
+      private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+      {
+          Exception ex = (Exception)e.ExceptionObject;
+          LogException(ex);
+      }
+
+      private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+      {
+          LogException(e.Exception);
+          e.Handled = true;
+      }
+      
+      private void TaskScheduler_UnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+      {
+          LogException(e.Exception);
+          e.SetObserved();
+      }
+
+      private void LogException(Exception ex)
+      {
+          Logger.Critical("ERROR! Unhandled exception!");
+          Logger.Critical($"Exception:\n{ex.Message}\n{ex.StackTrace}");
       }
       
       private void KillExistingInstances()
@@ -47,7 +77,7 @@ namespace STOTool
                   }
                   catch (Exception ex)
                   {
-                      Console.WriteLine($"Failed to kill process {process.Id}: {ex.Message}");
+                      MessageBox.Show($"Failed to kill process {process.Id}: {ex.Message}");
                   }
               }
           }

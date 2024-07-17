@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
+using Microsoft.Playwright;
 using STOTool.Class;
 using STOTool.Generic;
 
@@ -11,66 +12,87 @@ namespace STOTool.Feature
 {
     public class NewsProcessor
     {
-        public static async Task<List<NewsInfo>> GetNewsContentsAsync()
-        {
-            List<NewsInfo> newsContents = new List<NewsInfo>();
-            string url = "https://www.arcgames.com/en/games/star-trek-online/news";
-            string baseUrl = "https://www.arcgames.com";
+        private const string Url = "https://www.playstartrekonline.com/en/news#pc";
+        private const string BaseUrl = "https://www.playstartrekonline.com";
+        private const string NewsXPath = "//a[@class='news-page__news-post']";
 
+        public static async Task<List<NewsInfo>> GetNews()
+        {
             try
             {
-                HttpResponseMessage response = await Helper.HttpClient.GetAsync(url);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    string html = await response.Content.ReadAsStringAsync();
-                    HtmlDocument htmlDoc = new HtmlDocument();
-                    htmlDoc.LoadHtml(html);
-
-                    List<NewsInfo> parsedNews = ParseHtml(htmlDoc, baseUrl);
-                    newsContents.AddRange(parsedNews);
-                }
-                else
-                {
-                    Logger.Error($"Request failed with status code: {response.StatusCode}");
-                }
+#if DEBUG
+                string content = File.ReadAllText("debug.txt");
+#else
+                var content = await FetchPageContentAsync();
+#endif
+                return ParseHtmlContent(content);
             }
-            catch (Exception ex)
+            catch (HttpRequestException e)
             {
-                Logger.Error($"Error: {ex.Message}");
-                throw;
+                Logger.Error($"Error in parsing HTML: {e.Message}\n{e.StackTrace}");
+                return new List<NewsInfo>();
             }
-
-            return newsContents;
         }
 
-        private static List<NewsInfo> ParseHtml(HtmlDocument htmlDoc, string baseUrl)
+        private static async Task<string> FetchPageContentAsync()
         {
+            var page = await Helper.Browser.NewPageAsync();
+            await page.GotoAsync(Url, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+            
+            async Task ClickViewMoreAsync()
+            {
+                await page.EvaluateAsync("document.querySelector('span.news-page__view-more[role=\"button\"]').click();");
+                await page.WaitForTimeoutAsync(500);
+            }
+
+            await ClickViewMoreAsync();
+            await ClickViewMoreAsync();
+
+            string content = await page.ContentAsync();
+            await page.CloseAsync();
+
+            return content;
+        }
+
+        private static List<NewsInfo> ParseHtmlContent(string content)
+        {
+            HtmlDocument htmlDoc = new HtmlDocument();
+            htmlDoc.LoadHtml(content);
+
             List<NewsInfo> newsList = new List<NewsInfo>();
-            string newsXPath = "//div[contains(@class, 'news-content') and contains(@class, 'element')]";
-            HtmlNodeCollection newsNodes = htmlDoc.DocumentNode.SelectNodes(newsXPath);
+            HtmlNodeCollection newsNodes = htmlDoc.DocumentNode.SelectNodes(NewsXPath);
 
             if (newsNodes != null)
             {
+                int count = 0;
                 foreach (HtmlNode node in newsNodes)
                 {
-                    string title = node.SelectSingleNode(".//h2[@class='news-title']")?.InnerText?.Trim() ?? "";
-                    string imageUrl =
-                        node.SelectSingleNode(".//img[@class='item-img']")?.GetAttributeValue("src", "") ?? "";
-                    string newsLink =
-                        baseUrl + node.SelectSingleNode(".//a[@class='read-more']")?.GetAttributeValue("href", "") ??
-                        "";
-                    string finalTitle = Regex.Replace(title, @"&\w+;", string.Empty);
-
-                    if (!string.IsNullOrEmpty(title) && !string.IsNullOrEmpty(imageUrl) &&
-                        !string.IsNullOrEmpty(newsLink))
+                    try
                     {
-                        newsList.Add(new NewsInfo
+                        if (count >= 9)
                         {
-                            Title = finalTitle,
-                            ImageUrl = imageUrl,
-                            NewsLink = newsLink
-                        });
+                            break;
+                        }
+
+                        string title = node.SelectSingleNode(".//h3[contains(@class, 'news-page__news-post-title')]")?.InnerText.Trim();
+                        string imageUrl = node.SelectSingleNode(".//image")?.GetAttributeValue("xlink:href", string.Empty);
+                        string newsLink = node.GetAttributeValue("href", string.Empty);
+
+                        if (!string.IsNullOrEmpty(title) && !string.IsNullOrEmpty(imageUrl) && !string.IsNullOrEmpty(newsLink))
+                        {
+                            newsList.Add(new NewsInfo
+                            {
+                                Title = title,
+                                ImageUrl = imageUrl,
+                                NewsLink = new Uri(new Uri(BaseUrl), newsLink).ToString()
+                            });
+                        }
+
+                        count++;
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Error(e.Message + e.StackTrace);
                     }
                 }
             }

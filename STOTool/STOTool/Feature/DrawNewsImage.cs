@@ -46,13 +46,6 @@ namespace STOTool.Feature
             string maintenanceMessage = Api.MaintenanceInfoToString(maintenanceInfo);
 
 #if DEBUG
-            if (MainWindow.TestInt == 1)
-            {
-                maintenanceMessage = "TEST TEST TEST TEST TEST";
-
-                MainWindow.TestInt = 0;
-            }
-            
             maintenanceMessage = "TESTTESTTESTTESTTEST";
             
             EventInfo testInfo = new EventInfo()
@@ -67,8 +60,6 @@ namespace STOTool.Feature
             eventInfoTest.Add(testInfo);
             eventInfoTest.Add(testInfo);
 #endif
-            
-            // Draw events messages.
             int xE = x;
             int yE = y;
             
@@ -84,13 +75,11 @@ namespace STOTool.Feature
 
                 xE += 250;
             }
-
-            // Draw maintenance messages.
+            
             backgroundImage.Mutate(ctx => ctx.DrawText(maintenanceMessage, MainWindow.StFontFamily.CreateFont(60), Color.White, new PointF(x + 20, y + 870)));
 
             foreach (var newsImage in newsImages)
             {
-                // Draw news images and titles.
                 backgroundImage.Mutate(ctx => ctx.DrawImage(newsImage, new Point(x, y), 1f));
                 backgroundImage.Mutate(ctx => ctx.DrawText(Helper.StringTrim(newsTitles[count], 32), MainWindow.StFontFamily.CreateFont(50), Color.White, new PointF(x, y + 230)));
 
@@ -127,7 +116,7 @@ namespace STOTool.Feature
             if (Helper.NullCheck(cachedInfo))
             {
                 Logger.Error($"Something is null.");
-                return null;
+                return "null";
             }
             
             int startX = 311;
@@ -181,6 +170,11 @@ namespace STOTool.Feature
             else
             {
                 Logger.Error("Background image is null.");
+            }
+
+            if (result == null)
+            {
+                return "null";
             }
             
             return result;

@@ -64,20 +64,6 @@
         <TextBlock x:Name="MaintenanceInfo" Text="Placeholder" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="40" Foreground="White" Canvas.Left="290" Canvas.Top="1290" FontFamily="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"></TextBlock>
 
         <StackPanel>
-            <Button x:Name="Setting" Content="Setting" Width="100" Height="50" FontSize="30" Foreground="White" Margin="1300, 1250, 0, 0" Click="SettingButtonClick">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="FontFamily" Value="pack://application:,,,/STOTool;component/Font/#Swiss911 UCm BT"/>
-                        <Setter Property="Background" Value="Transparent"/>
-                        <Setter Property="BorderBrush" Value="Transparent"/>
-                        <Setter Property="BorderThickness" Value="0"/>
-                        <Setter Property="Padding" Value="5"/>
-                    </Style>
-                </Button.Style>
-            </Button>
-        </StackPanel>
-
-        <StackPanel>
             <Button x:Name="Log" Content="Log" Width="100" Height="50" FontSize="30" Foreground="White" Margin="1300, 1300, 0, 0" Click="LogButtonClick">
                 <Button.Style>
                     <Style TargetType="Button">

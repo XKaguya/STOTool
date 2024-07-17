@@ -16,28 +16,39 @@ namespace STOTool.Generic
         private static HttpClient? _httpClient;
         private static readonly Dictionary<string, byte[]> ImageCache = new ();
         
-        public static IBrowser _browser;
-        public static IPage _page;
+        private static IBrowser? BrowserInternal { get; set ; }
+
+        public static IBrowser Browser
+        {
+            get
+            {
+                if (BrowserInternal == null)
+                {
+                    throw new NullReferenceException();
+                }
+
+                return BrowserInternal;
+            }
+        }
+        public static IPage? Page { get; set; }
         
-        private static readonly Lazy<Task<IPlaywright>> LazyPlaywright = new Lazy<Task<IPlaywright>>(() => Playwright.CreateAsync());
-        private static readonly Lazy<Task<IBrowser>> LazyBrowser = new Lazy<Task<IBrowser>>(async () =>
+        private static readonly Lazy<Task<IPlaywright>> LazyPlaywright = new (() => Playwright.CreateAsync());
+        private static readonly Lazy<Task<IBrowser>> LazyBrowser = new (async () =>
         {
             var playwright = await LazyPlaywright.Value;
             return await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
             {
-                Headless = true
+                Headless = false
             });
         });
-
-        public static Task<IPlaywright> GetPlaywrightAsync() => LazyPlaywright.Value;
-        public static Task<IBrowser> GetBrowserAsync() => LazyBrowser.Value;
+        
+        private static Task<IBrowser> GetBrowserAsync() => LazyBrowser.Value;
         
         public static async Task<bool> InitBrowser()
         {
-            if (_browser == null)
+            if (BrowserInternal == null)
             {
-                _browser = await Helper.GetBrowserAsync();
-                _page = await _browser.NewPageAsync();
+                BrowserInternal = await GetBrowserAsync();
 
                 return true;
             }
@@ -109,47 +120,61 @@ namespace STOTool.Generic
             }
         }
 
-        public static async Task<byte[]> GetWebsiteScreenshot(CachedNews cachedNews, string url)
+        public static async Task<byte[]> GetWebsiteScreenshot(string url)
         {
-            await _page.GotoAsync(url);
+            Page = await Browser.NewPageAsync();
+            
+            await Page.GotoAsync(url, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
 
             string button = "#onetrust-accept-btn-handler";
 
-            var element = await _page.QuerySelectorAsync(button);
+            var element = await Page.QuerySelectorAsync(button);
 
             if (element != null)
             {
-                await _page.ClickAsync(button);
+                await Page.ClickAsync(button);
             }
-                    
-            cachedNews.ScreenshotData[url] = await _page.ScreenshotAsync(new PageScreenshotOptions { Type = ScreenshotType.Png, FullPage = true });
 
-            return cachedNews.ScreenshotData[url];
+            await Task.Delay(TimeSpan.FromSeconds(2));
+                    
+            var screenshotData = await Page.ScreenshotAsync(new PageScreenshotOptions { Type = ScreenshotType.Png, FullPage = true });
+
+            await Page.CloseAsync();
+
+            await StoreScreenshotDataIntoCache(url, screenshotData);
+
+            return screenshotData;
         }
         
-        public static async Task<CachedNews> GetAllScreenshot()
+        public static async Task<CachedNews> GetAllScreenshot(CachedNews cachedNews)
         {
-            CachedNews cachedNews = await Cache.GetCachedNewsAsync();
             Dictionary<string, byte[]>? screenshotData = new Dictionary<string, byte[]>();
 
-            foreach (var link in cachedNews.NewsUrls)
+            if (NullCheck(cachedNews))
             {
-                if (_browser == null || _page == null)
-                {
-                    await InitBrowser();
-                }
+                return null;
+            }
+
+            foreach (var link in cachedNews.NewsUrls!)
+            {
+                Page = await Browser.NewPageAsync();
                 
-                await _page.GotoAsync(link);
+                await Page.GotoAsync(link, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+                
                 string button = "#onetrust-accept-btn-handler";
-                var element = await _page.QuerySelectorAsync(button);
+                var element = await Page.QuerySelectorAsync(button);
                 
                 if (element != null)
                 {
-                    await _page.ClickAsync(button);
+                    await Page.ClickAsync(button);
                 }
                 
-                screenshotData[link] = await _page.ScreenshotAsync(new PageScreenshotOptions { Type = ScreenshotType.Png, FullPage = true });
+                await Task.Delay(TimeSpan.FromSeconds(2));
+                
+                screenshotData[link] = await Page.ScreenshotAsync(new PageScreenshotOptions { Type = ScreenshotType.Png, FullPage = true });
                 Logger.Info($"Finished download of {link}");
+
+                await Page.CloseAsync();
             }
 
             CachedNews cachedNewsAlter = new CachedNews()
@@ -159,6 +184,63 @@ namespace STOTool.Generic
             };
 
             return cachedNewsAlter;
+        }
+        
+        public static async Task<CachedNews> GetAllScreenshot()
+        {
+            CachedNews cachedNews = await Cache.GetCachedNewsAsync();
+            Dictionary<string, byte[]>? screenshotData = new Dictionary<string, byte[]>();
+
+            if (NullCheck(cachedNews))
+            {
+                return null;
+            }
+
+            foreach (var link in cachedNews.NewsUrls!)
+            {
+                Page = await Browser.NewPageAsync();
+                
+                await Page.GotoAsync(link, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+                
+                string button = "#onetrust-accept-btn-handler";
+                var element = await Page.QuerySelectorAsync(button);
+                
+                if (element != null)
+                {
+                    await Page.ClickAsync(button);
+                }
+                
+                await Task.Delay(TimeSpan.FromSeconds(2));
+                
+                screenshotData[link] = await Page.ScreenshotAsync(new PageScreenshotOptions { Type = ScreenshotType.Png, FullPage = true });
+                Logger.Info($"Finished download of {link}");
+
+                await Page.CloseAsync();
+            }
+
+            CachedNews cachedNewsAlter = new CachedNews()
+            {
+                NewsUrls = cachedNews.NewsUrls,
+                ScreenshotData = screenshotData
+            };
+
+            return cachedNewsAlter;
+        }
+
+        public static async Task<bool> StoreScreenshotDataIntoCache(string url, byte[] data)
+        {
+            CachedNews cachedNews = await Cache.GetCachedNewsAsync();
+
+            if (NullCheck(cachedNews))
+            {
+                return false;
+            }
+
+            cachedNews.ScreenshotData![url] = data;
+            
+            Cache.Set(Cache.NewsCacheKey, cachedNews);
+
+            return true;
         }
         
         public static bool NullCheck(DateTime? date)
@@ -223,9 +305,6 @@ namespace STOTool.Generic
 
         public static string StringTrim(string str, int length)
         {
-#if DEBUG
-            Logger.Debug($"{str}, {length}");
-#endif
             if (str.Length > length)
             {
                 string result = str.Substring(0, length);
