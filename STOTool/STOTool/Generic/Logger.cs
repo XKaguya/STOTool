@@ -14,6 +14,7 @@ namespace STOTool.Generic
     {
         private static RichTextBox _logRichTextBox;
         private static readonly string LogFilePath = "Info.log";
+        private static readonly string CriticalLogPath;
         private static readonly object LockObject = new();
         private static int _logCount = 0;
         private static int _maxLogCount = 100;
@@ -22,6 +23,7 @@ namespace STOTool.Generic
         static Logger()
         {
             _logRichTextBox = new RichTextBox();
+            CriticalLogPath = $"[{DateTime.Now.Month} + {DateTime.Now.Day} + {DateTime.Now.Hour} + {DateTime.Now.Second}]Critical.log";
             File.WriteAllText(LogFilePath, string.Empty);
         }
 
@@ -53,7 +55,7 @@ namespace STOTool.Generic
         {
             if (_currentLogLevel >= LogLevel.Info)
             {
-                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [SRC: {GetCallerName()}] [INFO]: {message}";
+                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{GetCallerName()}] [INFO]: {message}";
                 WriteLogToFile(logMessage);
                 LogAddLine(logMessage, Brushes.CornflowerBlue);
                 return true;
@@ -66,7 +68,7 @@ namespace STOTool.Generic
         {
             if (_currentLogLevel >= LogLevel.Warning)
             {
-                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [SRC: {GetCallerName()}] [WARNING]: {message}";
+                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{GetCallerName()}] [WARNING]: {message}";
                 WriteLogToFile(logMessage);
                 LogAddLine(logMessage, Brushes.Maroon);
                 return true;
@@ -93,7 +95,7 @@ namespace STOTool.Generic
         {
             if (_currentLogLevel >= LogLevel.Debug)
             {
-                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [SRC: {GetCallerName()}] [DEBUG]: {message}";
+                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{GetCallerName()}] [DEBUG]: {message}";
                 WriteLogToFile(logMessage);
                 LogAddLine(logMessage, Brushes.LightSlateGray);
                 return true;
@@ -107,7 +109,7 @@ namespace STOTool.Generic
         {
             if (_currentLogLevel >= LogLevel.Trace)
             {
-                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [SRC: {GetCallerName()}] [TRACE]: {message}";
+                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{GetCallerName()}] [TRACE]: {message}";
                 WriteLogToFile(logMessage);
                 LogAddLine(logMessage, Brushes.Gold);
                 return true;
@@ -122,6 +124,20 @@ namespace STOTool.Generic
             if (_currentLogLevel >= LogLevel.Fatal)
             {
                 string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [Exception Source: {GetCallerName()}] [FATAL]: {message}";
+                WriteLogToFile(logMessage);
+                LogAddLine(logMessage, Brushes.Red);
+                return true;
+            }
+            
+            return false;
+        }
+        
+        [STAThread]
+        public static bool Critical(string message)
+        {
+            if (_currentLogLevel >= LogLevel.Critical)
+            {
+                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [Exception Source: {GetCallerName()}] [CRITICAL]: {message}";
                 WriteLogToFile(logMessage);
                 LogAddLine(logMessage, Brushes.Red);
                 return true;
@@ -164,12 +180,31 @@ namespace STOTool.Generic
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Error(e.Message + e.StackTrace);
+                throw;
+            }
+        }
+        
+        private static void CriticalLog(string message)
+        {
+            try
+            {
+                lock (LockObject)
+                {
+                    using (StreamWriter writer = new StreamWriter(CriticalLogPath, true))
+                    {
+                        writer.WriteLine(message);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Error(e.Message + e.StackTrace);
                 throw;
             }
         }
 
-        private static void ClearLogs()
+        public static void ClearLogs()
         {
             _logRichTextBox.Dispatcher.Invoke(() => { _logRichTextBox.Document.Blocks.Clear(); });
             _logCount = 0;

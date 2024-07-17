@@ -18,10 +18,7 @@ namespace STOTool
     /// </summary>
     public partial class MainWindow
     {
-        private const string Version = "1.1.2";
-      
-        public static int Interval = 5000;
-        private static int _maxRetry = 3;
+        private const string Version = "1.1.3";
         
         public static FontFamily StFontFamily { get; private set; }
         
@@ -30,43 +27,21 @@ namespace STOTool
 
         public static Image<Rgba32>? BackgroundImageDown { get; private set; } = null;
         public static Image<Rgba32>? BackgroundImageUp { get; private set; } = null;
-
-#if DEBUG
-        public static int TestInt { get; set; } = 1;
-#endif
         
         public MainWindow()
         {
             InitializeComponent();
-            LogWindow.Instance.Hide();
+            Hide();
+            Logger.ClearLogs();
             PreInit();
-#if DEBUG
+            
             Logger.Debug("You're in DEBUG mode.");
             Api.SetProgramLevel(ProgramLevel.Debug);
             Logger.SetLogLevel(LogLevel.Debug);
             LogWindow.Instance.Show();
-#else
             Task.Run(PostInit);
-            Task.Run(DelayMethods);
 
             Logger.Info($"Welcome to STOTool. This is version {Version}. If you meet any problem, please contact me at github.");
-#endif
-        }
-
-        private static async Task DelayMethods()
-        {
-            try
-            {
-                await Task.Delay(TimeSpan.FromMinutes(10));
-                
-                CachedNews screenshotTask = await Helper.GetAllScreenshot();
-                
-                Cache.UpdateCache(screenshotTask);
-            }
-            catch (Exception ex)
-            {
-                Logger.Warning($"Exception occurred: {ex.Message}");
-            }
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -84,18 +59,14 @@ namespace STOTool
                 
                 await Helper.InitBrowser();
 
+                // Init the caches in the first time.
                 var cacheNewsTask = Cache.GetCachedNewsAsync();
                 var cacheInfoTask = Cache.GetCachedInfoAsync();
                 var cacheMaintenanceTask = Cache.GetFastCachedMaintenanceInfoAsync();
-                var screenshotTask = Helper.GetAllScreenshot();
 
-                await Task.WhenAll(cacheNewsTask, cacheInfoTask, cacheMaintenanceTask, screenshotTask);
+                await Task.WhenAll(cacheNewsTask, cacheInfoTask, cacheMaintenanceTask);
                 
-                Logger.Info($"Compelted.");
-
-                var result = screenshotTask.Result;
-
-                Cache.UpdateCache(result);
+                Logger.Info($"PostInit has completed.");
             }
             catch (Exception e)
             {
@@ -113,18 +84,6 @@ namespace STOTool
             else
             {
                 LogWindow.Instance.Show();
-            }
-        }
-
-        private void SettingButtonClick(object sender, RoutedEventArgs e)
-        {
-            if (SetWindow.Instance.IsVisible)
-            {
-                SetWindow.Instance.Hide();
-            }
-            else
-            {
-                SetWindow.Instance.Show();
             }
         }
 

@@ -1,12 +1,26 @@
 ﻿<Window x:Class="STOTool.LogWindow"
+        xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
+        ui:WindowHelper.UseModernWindowStyle="True"
+        ui:WindowHelper.SystemBackdropType="Mica"
+        ui:TitleBar.Height="36"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Log" Height="340" Width="824">
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:local="clr-namespace:STOTool"
+        mc:Ignorable="d"
+        Title="Log" Height="450" Width="800">
     <Border Background="#FFF" CornerRadius="10">
         <Grid>
-            <RichTextBox x:Name="LogBox" VerticalScrollBarVisibility="Auto" IsReadOnly="True"
-                         Background="White">
-            </RichTextBox>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <RichTextBox x:Name="LogTextBox" VerticalScrollBarVisibility="Auto" IsReadOnly="True" Background="White" Grid.Row="0"/>
+            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
+                <Button Content="Scroll to Bottom" Click="ScrollToBottomClick" Margin="5"/>
+                <Button Content="Clear Log" Click="ClearLogClick" Margin="5"/>
+            </StackPanel>
         </Grid>
     </Border>
 </Window>
