@@ -1,0 +1,45 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <RootNamespace>STOTool</RootNamespace>
+        <Nullable>enable</Nullable>
+        <UseWPF>true</UseWPF>
+        <ApplicationIcon>sto.ico</ApplicationIcon>
+        <TargetFramework>net7.0-windows</TargetFramework>
+        <LangVersion>10</LangVersion>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <DefineConstants>TRACE</DefineConstants>
+        <Optimize>true</Optimize>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Google.Apis.Auth" Version="1.67.0" />
+      <PackageReference Include="Google.Apis.Calendar.v3" Version="1.67.0.3297" />
+      <PackageReference Include="HtmlAgilityPack" Version="1.11.60" />
+      <PackageReference Include="iNKORE.UI.WPF.Modern" Version="0.9.30" />
+      <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0" />
+      <PackageReference Include="Microsoft.Playwright" Version="1.44.0" />
+      <PackageReference Include="SixLabors.Fonts" Version="2.0.3" />
+      <PackageReference Include="SixLabors.ImageSharp" Version="3.1.4" />
+      <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.3" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Background\Bg_Down.png" />
+      <Resource Include="Background\Bg_Down.png" />
+      <None Remove="Background\Bg_On.png" />
+      <Resource Include="Background\Bg_Up.png" />
+      <None Remove="Background\Placeholder.png" />
+      <Resource Include="Background\Placeholder.png" />
+      <EmbeddedResource Include="Font\StarTrek_Embedded.ttf" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Font\StarTrek.ttf" />
+      <Resource Include="Font\StarTrek.ttf" />
+    </ItemGroup>
+</Project>
