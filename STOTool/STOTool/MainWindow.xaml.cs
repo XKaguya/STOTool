@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -6,8 +6,6 @@ using System.Windows;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using STOTool.Class;
-using STOTool.Enum;
 using STOTool.Feature;
 using STOTool.Generic;
 
@@ -18,7 +16,7 @@ namespace STOTool
     /// </summary>
     public partial class MainWindow
     {
-        private const string Version = "1.1.3";
+        private const string Version = "1.1.5";
         
         public static FontFamily StFontFamily { get; private set; }
         
@@ -35,9 +33,9 @@ namespace STOTool
             Logger.ClearLogs();
             PreInit();
             
-            Logger.Debug("You're in DEBUG mode.");
+            /*Logger.Debug("You're in DEBUG mode.");
             Api.SetProgramLevel(ProgramLevel.Debug);
-            Logger.SetLogLevel(LogLevel.Debug);
+            Logger.SetLogLevel(LogLevel.Debug);*/
             LogWindow.Instance.Show();
             Task.Run(PostInit);
 
@@ -67,12 +65,33 @@ namespace STOTool
                 await Task.WhenAll(cacheNewsTask, cacheInfoTask, cacheMaintenanceTask);
                 
                 Logger.Info($"PostInit has completed.");
+
+                while (true)
+                {
+                    await Loop1();
+
+                    await Loop2();
+                }
             }
             catch (Exception e)
             {
                 Logger.Error(e.Message + e.StackTrace);
                 throw;
             }
+        }
+
+        private static async Task Loop1()
+        {
+            await Task.Run(() => AutoNews.HasHashChanged());
+                    
+            await Task.Delay(TimeSpan.FromSeconds(20));
+        }
+        
+        private static async Task Loop2()
+        {
+            await Task.Run(() => DrawNewsImage.DrawImageAsync());
+                    
+            await Task.Delay(TimeSpan.FromMinutes(10));
         }
 
         private void LogButtonClick(object sender, RoutedEventArgs e)

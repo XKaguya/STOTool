@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
-using STOTool.Enum;
+using LogLevel = STOTool.Enum.LogLevel;
 
 namespace STOTool.Generic
 {
@@ -23,7 +23,7 @@ namespace STOTool.Generic
         static Logger()
         {
             _logRichTextBox = new RichTextBox();
-            CriticalLogPath = $"[{DateTime.Now.Month} + {DateTime.Now.Day} + {DateTime.Now.Hour} + {DateTime.Now.Second}]Critical.log";
+            CriticalLogPath = $"[{DateTime.Now.Month}-{DateTime.Now.Day}-{DateTime.Now.Hour}-{DateTime.Now.Minute}]Critical.log";
             File.WriteAllText(LogFilePath, string.Empty);
         }
 
@@ -138,7 +138,7 @@ namespace STOTool.Generic
             if (_currentLogLevel >= LogLevel.Critical)
             {
                 string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [Exception Source: {GetCallerName()}] [CRITICAL]: {message}";
-                WriteLogToFile(logMessage);
+                CriticalLog(logMessage);
                 LogAddLine(logMessage, Brushes.Red);
                 return true;
             }
@@ -191,10 +191,8 @@ namespace STOTool.Generic
             {
                 lock (LockObject)
                 {
-                    using (StreamWriter writer = new StreamWriter(CriticalLogPath, true))
-                    {
-                        writer.WriteLine(message);
-                    }
+                    using StreamWriter writer = new StreamWriter(CriticalLogPath, true);
+                    writer.WriteLine(message);
                 }
             }
             catch (Exception e)

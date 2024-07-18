@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using STOTool.Class;
@@ -10,6 +11,8 @@ namespace STOTool.Generic
     public static class Cache
     {
         private static readonly IMemoryCache MemoryCache = new MemoryCache(new MemoryCacheOptions());
+        private static readonly SemaphoreSlim CacheLock = new SemaphoreSlim(1, 1);
+
         public static readonly string CacheKey = "CachedInfo";
         public static readonly string NewsCacheKey = "NewsCache";
         public static readonly string FastCacheKey = "FastCache";
@@ -22,6 +25,8 @@ namespace STOTool.Generic
 
         private static void SetCacheItemWithCallback<T>(string key, T value, TimeSpan expiration, PostEvictionDelegate onExpiration)
         {
+            MemoryCache.Remove(key);
+            
             var cacheEntryOptions = new MemoryCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = expiration,
@@ -73,78 +78,102 @@ namespace STOTool.Generic
 
         public static async Task<CachedInfo> GetCachedInfoAsync()
         {
-            if (MemoryCache.TryGetValue(CacheKey, out CachedInfo cachedInfo))
+            await CacheLock.WaitAsync();
+            try
             {
-                Logger.Debug("CachedInfo found in memory cache.");
+                if (MemoryCache.TryGetValue(CacheKey, out CachedInfo cachedInfo))
+                {
+                    Logger.Debug("CachedInfo found in memory cache.");
+                    return cachedInfo;
+                }
+
+                Logger.Debug("CachedInfo not found in memory cache. Fetching new data.");
+                var newsTask = NewsProcessor.GetNews();
+                var eventTask = Calendar.GetRecentEventsAsync();
+
+                await Task.WhenAll(newsTask, eventTask);
+
+                cachedInfo = new CachedInfo
+                {
+                    NewsInfos = await newsTask,
+                    EventInfos = await eventTask
+                };
+
+                SetCacheItemWithCallback(CacheKey, cachedInfo, CacheExpiration, OnExpired);
+
                 return cachedInfo;
             }
-
-            Logger.Debug("CachedInfo not found in memory cache. Fetching new data.");
-            var newsTask = NewsProcessor.GetNews();
-            var eventTask = Calendar.GetRecentEventsAsync();
-
-            await Task.WhenAll(newsTask, eventTask);
-
-            cachedInfo = new CachedInfo
+            finally
             {
-                NewsInfos = await newsTask,
-                EventInfos = await eventTask
-            };
-
-            SetCacheItemWithCallback(CacheKey, cachedInfo, CacheExpiration, OnExpired);
-
-            return cachedInfo;
+                CacheLock.Release();
+            }
         }
 
         public static async Task<MaintenanceInfo> GetFastCachedMaintenanceInfoAsync()
         {
-            if (MemoryCache.TryGetValue(FastCacheKey, out MaintenanceInfo maintenanceInfo))
+            await CacheLock.WaitAsync();
+            try
             {
-                Logger.Debug("FastCache found in memory cache.");
+                if (MemoryCache.TryGetValue(FastCacheKey, out MaintenanceInfo maintenanceInfo))
+                {
+                    Logger.Debug("FastCache found in memory cache.");
+                    return maintenanceInfo;
+                }
+
+                Logger.Debug("FastCache not found in memory cache. Fetching new data.");
+                maintenanceInfo = await ServerStatus.CheckServerAsync();
+
+                if (Helper.NullCheck(maintenanceInfo))
+                {
+                    Logger.Debug("MaintenanceInfo is null.");
+                    return null;
+                }
+
+                SetCacheItemWithCallback(FastCacheKey, maintenanceInfo, FastCacheExpiration, OnExpired);
+
                 return maintenanceInfo;
             }
-
-            Logger.Debug("FastCache not found in memory cache. Fetching new data.");
-            maintenanceInfo = await ServerStatus.CheckServerAsync();
-
-            if (Helper.NullCheck(maintenanceInfo))
+            finally
             {
-                Logger.Debug("MaintenanceInfo is null.");
-                return null;
+                CacheLock.Release();
             }
-
-            SetCacheItemWithCallback(FastCacheKey, maintenanceInfo, FastCacheExpiration, OnExpired);
-
-            return maintenanceInfo;
         }
 
         public static async Task<CachedNews> GetCachedNewsAsync()
         {
-            if (MemoryCache.TryGetValue(NewsCacheKey, out CachedNews cachedNews))
+            await CacheLock.WaitAsync();
+            try
             {
-                Logger.Debug("NewsCache found in memory cache.");
+                if (MemoryCache.TryGetValue(NewsCacheKey, out CachedNews cachedNews))
+                {
+                    Logger.Debug("NewsCache found in memory cache.");
+                    return cachedNews;
+                }
+
+                Logger.Debug("NewsCache not found in memory cache or expired. Fetching new data.");
+                var newsList = await NewsProcessor.GetNews();
+
+                cachedNews = new CachedNews
+                {
+                    NewsUrls = newsList.ConvertAll(input => input.NewsLink),
+                    ScreenshotData = new Dictionary<string, byte[]>()
+                };
+
+                foreach (var link in cachedNews.NewsUrls)
+                {
+                    cachedNews.ScreenshotData[link] = null;
+                }
+
+                var cachedNewsInternal = await Helper.GetAllScreenshot(cachedNews);
+
+                SetCacheItemWithCallback(NewsCacheKey, cachedNewsInternal, NewsCacheExpiration, OnExpired);
+
                 return cachedNews;
             }
-
-            Logger.Debug("NewsCache not found in memory cache or expired. Fetching new data.");
-            var newsList = await NewsProcessor.GetNews();
-
-            cachedNews = new CachedNews
+            finally
             {
-                NewsUrls = newsList.ConvertAll(input => input.NewsLink),
-                ScreenshotData = new Dictionary<string, byte[]>()
-            };
-
-            foreach (var link in cachedNews.NewsUrls)
-            {
-                cachedNews.ScreenshotData[link] = null;
+                CacheLock.Release();
             }
-
-            var cachedNewsInternal = await Helper.GetAllScreenshot(cachedNews);
-
-            SetCacheItemWithCallback(NewsCacheKey, cachedNewsInternal, NewsCacheExpiration, OnExpired);
-
-            return cachedNews;
         }
 
         public static void UpdateCache(CachedNews cachedNews)
@@ -155,7 +184,7 @@ namespace STOTool.Generic
 
         public static void Set<T>(string key, T value)
         {
-            SetCacheItemWithCallback(NewsCacheKey, value, NewsCacheExpiration, OnExpired);
+            SetCacheItemWithCallback(key, value, NewsCacheExpiration, OnExpired);
         }
 
         public static bool TryGetValue<T>(string key, out T value)
@@ -166,6 +195,7 @@ namespace STOTool.Generic
 
         public static async Task RemoveAll()
         {
+            await CacheLock.WaitAsync();
             try
             {
                 Logger.Debug("Removing all cache items.");
@@ -180,6 +210,10 @@ namespace STOTool.Generic
             catch (Exception ex)
             {
                 Logger.Error($"Error removing cache items: {ex.Message} {ex.StackTrace}");
+            }
+            finally
+            {
+                CacheLock.Release();
             }
         }
     }

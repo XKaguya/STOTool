@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows;
 using STOTool.Generic;
+using STOTool.Settings;
 
 namespace STOTool
 {
@@ -28,7 +29,19 @@ namespace STOTool
               MainWindowInstance = new MainWindow();
               MainWindowInstance.Hide();
 
-              await Feature.PipeServer.StartServerAsync();
+              Api.ParseConfig();
+
+              if (GlobalVariables.LegacyPipeMode)
+              {
+                  await Feature.PipeServer.StartServerAsync();
+              }
+              else
+              {
+                  string prefix = $"{GlobalVariables.WebSocketListenerAddress}:{GlobalVariables.WebSocketListenerPort}/";
+                  string[] prefixes = { prefix };
+
+                  await Feature.WebSocketServer.StartWebSocketServerAsync(prefixes);
+              }
           }
           catch (Exception e)
           {

@@ -49,8 +49,7 @@ namespace STOTool.Feature
 
                 window.Dispatcher.Invoke(() =>
                 {
-                    bitmap = new RenderTargetBitmap(
-                        (int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+                    bitmap = new RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32);
             
                     bitmap.Render(window);
                 });

@@ -18,6 +18,9 @@ namespace STOTool.Feature
 
         public static async Task StartServerAsync()
         {
+            Logger.Warning("Pipe will be deprecated in the future. Please use the WebSocket server instead.");
+            Logger.Warning("The Pipe Server maintains just for compatibility of the old plugins.");
+            
             try
             {
                 while (true)
@@ -56,7 +59,7 @@ namespace STOTool.Feature
                     }
 
                     string receivedMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                    Logger.Info($"Received message from client: {receivedMessage}");
+                    Logger.Info($"Received the following command from client: {receivedMessage}");
 
                     await ProcessClientMessageAsync(pipeServer, receivedMessage);
                 }
@@ -67,50 +70,59 @@ namespace STOTool.Feature
             }
             catch (Exception ex)
             {
-                Logger.Error($"Error occurred: {ex.Message}\n" + "{ex.StackTrace}");
+                Logger.Error($"Error occurred: {ex.Message}\n + {ex.StackTrace}");
             }
         }
 
         private static async Task ProcessClientMessageAsync(NamedPipeServerStream pipeServer, string receivedMessage)
         {
             string[] messageParts = receivedMessage.Split(' ');
-            
-            string command = messageParts[0];
-            
-            int index = 0;
-            if (messageParts.Length > 1 && int.TryParse(messageParts[1], out index))
+
+            if (System.Enum.TryParse<Command>(messageParts[0], out Command command))
             {
-                if (command == "nI")
+                int index = 0;
+                if (messageParts.Length > 1 && int.TryParse(messageParts[1], out index))
                 {
-                    await ClientAskForNewsInIndex(pipeServer, index);
+                    if (command == Command.ClientAskForNews)
+                    {
+                        await ClientAskForNewsInIndex(pipeServer, index);
+                    }
+                    else
+                    {
+                        Logger.Error($"Invalid command {command}");
+                    }
                 }
                 else
                 {
-                    Logger.Error($"Invalid command {command}");
+                    switch (command)
+                    {
+                        case Command.ClientCheckServerAlive:
+                            await ClientCheckServerAlive(pipeServer);
+                            break;
+                        case Command.ClientAskForPassiveType:
+                            await ClientAskForPassiveType(pipeServer);
+                            break;
+                        case Command.ClientAskForScreenshot:
+                            await ClientAskForScreenshot(pipeServer);
+                            break;
+                        case Command.ClientAskForDrawImage:
+                            await ClientAskForDrawImage(pipeServer);
+                            break;
+                        case Command.ClientAskForRefreshCache:
+                            await ClientAskRefreshCache();
+                            break;
+                        case Command.ClientAskIfHashChanged:
+                            await ClientAskIfHashChanged(pipeServer);
+                            break;
+                        default:
+                            Logger.Error("Invalid Command.");
+                            break;
+                    }
                 }
             }
             else
             {
-                if (command == "cL")
-                {
-                    await ClientCheckServerAlive(pipeServer);
-                }
-                else if (command == "sS")
-                {
-                    await ClientAskForPassiveType(pipeServer);
-                }
-                else if (command == "sS2")
-                {
-                    await ClientAskForScreenshot(pipeServer);
-                }
-                else if (command == "dI")
-                {
-                    await ClientAskForDrawImage(pipeServer);
-                }
-                else if (command == "rF")
-                {
-                    await ClientAskRefreshCache();
-                }
+                Logger.Error("Invalid command format.");
             }
         }
 
@@ -126,14 +138,10 @@ namespace STOTool.Feature
                     Logger.Debug($"Passive type: {passiveType}");
                     byte[] messageBytes = Encoding.UTF8.GetBytes(passiveType.ToString());
                 
-                    using (MemoryStream memoryStream = new MemoryStream(messageBytes))
-                    {
-                        await memoryStream.CopyToAsync(pipeServer);
-                        
-                        pipeServer.WaitForPipeDrain();
+                    await pipeServer.WriteAsync(messageBytes, 0, messageBytes.Length);
+                    pipeServer.WaitForPipeDrain();
 
-                        Logger.Debug("Passive type sent successfully.");
-                    }
+                    Logger.Debug("Passive type sent successfully.");
                 }
             }
             catch (Exception e)
@@ -165,8 +173,6 @@ namespace STOTool.Feature
                     await pipeServer.WriteAsync(imageData, 0, imageData.Length);
                     
                     pipeServer.WaitForPipeDrain();
-                    
-                    GC.Collect();
     
                     Logger.Debug($"Screenshot sent successfully.");
                 }
@@ -191,17 +197,14 @@ namespace STOTool.Feature
                     Logger.Info("Client awaiting for response. Sending now...");
 
                     byte[] messageBytes = Encoding.UTF8.GetBytes("Success");
-                    using MemoryStream memoryStream = new MemoryStream(messageBytes);
-
-                    await memoryStream.CopyToAsync(pipeServer);
-                        
+                    await pipeServer.WriteAsync(messageBytes, 0, messageBytes.Length);
                     pipeServer.WaitForPipeDrain();
-                        
+
                     Logger.Info("Sent response.");
                 }
                 else
                 {
-                    Logger.Error("Client cant write.");
+                    Logger.Error("Client can't write.");
                 }
             }
             catch (Exception e)
@@ -224,6 +227,33 @@ namespace STOTool.Feature
             }
         }
         
+        private static async Task ClientAskIfHashChanged(PipeStream pipeServer)
+        {
+            try
+            {
+                var result = await AutoNews.HasHashChanged();
+
+                if (result != "null")
+                {
+                    if (pipeServer.IsConnected && pipeServer.CanWrite)
+                    {
+                        Logger.Info("Pipe is connected and writable. Preparing to send response...");
+
+                        byte[] resultBytes = Encoding.UTF8.GetBytes(result);
+
+                        await pipeServer.WriteAsync(resultBytes, 0, resultBytes.Length);
+
+                        pipeServer.WaitForPipeDrain();
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e.Message + e.StackTrace);
+                throw;
+            }
+        }
+        
         private static async Task ClientAskForNewsInIndex(PipeStream pipeServer, int index)
         {
             try
@@ -234,7 +264,7 @@ namespace STOTool.Feature
 
                     string result = await GetNewsImage.CallScreenshot(index);
 
-                    if (Helper.NullCheck(result))
+                    if (string.IsNullOrEmpty(result))
                     {
                         Logger.Warning("Result is null or empty after calling CallScreenshot.");
                         return;
@@ -243,8 +273,6 @@ namespace STOTool.Feature
                     byte[] resultBytes = Encoding.UTF8.GetBytes(result);
 
                     await pipeServer.WriteAsync(resultBytes, 0, resultBytes.Length);
-
-                    await pipeServer.FlushAsync();
 
                     pipeServer.WaitForPipeDrain();
                 }
@@ -270,23 +298,20 @@ namespace STOTool.Feature
 
                     string result = await DrawNewsImage.DrawImageAsync();
 
-                    if (Helper.NullCheck(result))
+                    if (string.IsNullOrEmpty(result))
                     {
-                        Logger.Warning($"Image stream is null.");
+                        Logger.Warning("Image stream is null.");
                         return;
                     }
 
-                    Logger.Info($"{result.Length}");
-                    
-                    await pipeServer.FlushAsync();
-                    
-                    await pipeServer.WriteAsync(Encoding.UTF8.GetBytes(result), 0, result.Length);
+                    byte[] resultBytes = Encoding.UTF8.GetBytes(result);
+                    await pipeServer.WriteAsync(resultBytes, 0, resultBytes.Length);
                     
                     pipeServer.WaitForPipeDrain();
                 }
                 else
                 {
-                    Logger.Error("Client cant write.");
+                    Logger.Error("Client can't write.");
                 }
             }
             catch (Exception e)

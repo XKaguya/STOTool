@@ -151,6 +151,42 @@ namespace STOTool.Feature
                     {
                         return PassiveEnum.MaintenanceEndedSent;
                     }
+                
+                case MaintenanceTimeType.SpecialMaintenance:
+                    if (!maintenanceEnded && maintenanceStarted && maintenanceStartedSent)
+                    {
+                        WriteCheckerJson(false, false, false, false, true, !maintenanceEndedSent);
+                        if (!maintenanceEndedSent)
+                        {
+                            return PassiveEnum.MaintenanceEnded;
+                        }
+                        else
+                        {
+                            return PassiveEnum.MaintenanceEndedSent;
+                        }
+                    }
+                    else
+                    {
+                        return PassiveEnum.MaintenanceEndedSent;
+                    }
+                
+                case MaintenanceTimeType.None:
+                    if (!maintenanceEnded)
+                    {
+                        WriteCheckerJson(false, false, false, false, true, !maintenanceEndedSent);
+                        if (!maintenanceEndedSent)
+                        {
+                            return PassiveEnum.MaintenanceEnded;
+                        }
+                        else
+                        {
+                            return PassiveEnum.MaintenanceEndedSent;
+                        }
+                    }
+                    else
+                    {
+                        return PassiveEnum.MaintenanceEndedSent;
+                    }
 
                 default:
                     return PassiveEnum.Null;
