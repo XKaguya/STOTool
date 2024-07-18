@@ -30,7 +30,7 @@ namespace STOTool.Generic
                 return BrowserInternal;
             }
         }
-        public static IPage? Page { get; set; }
+        private static IPage? Page { get; set; }
         
         private static readonly Lazy<Task<IPlaywright>> LazyPlaywright = new (() => Playwright.CreateAsync());
         private static readonly Lazy<Task<IBrowser>> LazyBrowser = new (async () =>

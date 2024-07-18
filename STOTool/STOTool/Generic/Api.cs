@@ -1,25 +1,22 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
-using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
+using System.Xml;
 using STOTool.Class;
 using STOTool.Enum;
-using STOTool.Feature;
+using STOTool.Settings;
 
 namespace STOTool.Generic
 {
     public class Api
     {
         private static ProgramLevel ProgramLevel { get; set; } = ProgramLevel.Normal;
-        
+        private static string ConfigFilePath { get; } = "config.xml";
+
         public static bool IsDebugMode()
         {
             return ProgramLevel == ProgramLevel.Debug;
         }
-        
+
         public static string? GetDebugMessage()
         {
             string filePath = Directory.GetCurrentDirectory();
@@ -51,42 +48,77 @@ namespace STOTool.Generic
             return ProgramLevel == mode;
         }
 
-        private static void UpdateServerStatus(ShardStatus status)
+        public static bool ParseConfig()
         {
             try
             {
-                if (App.MainWindowInstance != null)
+                if (!File.Exists(ConfigFilePath))
                 {
-                    if (status == ShardStatus.Up)
-                    {
-                        App.MainWindowInstance!.BackGround.ImageSource = new BitmapImage( new Uri("pack://application:,,,/STOTool;component/Background/Bg_Up.png"));
-                    }
-                    else
-                    {
-                        App.MainWindowInstance!.BackGround.ImageSource = new BitmapImage(new Uri("pack://application:,,,/STOTool;component/Background/Bg_Down.png"));
-                    }
+                    Logger.Error("Config file not exist.");
+                    File.WriteAllText(ConfigFilePath, string.Empty);
+
+                    SaveToXml(ConfigFilePath);  
                 }
+
+                LoadFromXml(ConfigFilePath);
+                return true;
             }
             catch (Exception ex)
             {
                 Logger.Error(ex.Message + ex.StackTrace);
-                throw;
+                return false;
             }
         }
-
-        private static ShardStatus ConvertMaintenanceTimeToShardStatus(MaintenanceTimeType maintenanceTime)
+        
+        private static void LoadFromXml(string filePath)
         {
-            switch (maintenanceTime)
+            XmlDocument doc = new XmlDocument();
+            doc.Load(filePath);
+
+            XmlNode root = doc.DocumentElement;
+
+            GlobalVariables.ProgramLevel = root.SelectSingleNode(nameof(GlobalVariables.ProgramLevel)).InnerText;
+            GlobalVariables.LogLevel = root.SelectSingleNode(nameof(GlobalVariables.LogLevel)).InnerText;
+            GlobalVariables.LegacyPipeMode = bool.Parse(root.SelectSingleNode(nameof(GlobalVariables.LegacyPipeMode)).InnerText);
+            GlobalVariables.WebSocketListenerAddress = root.SelectSingleNode(nameof(GlobalVariables.WebSocketListenerAddress)).InnerText;
+            GlobalVariables.WebSocketListenerPort = ushort.Parse(root.SelectSingleNode(nameof(GlobalVariables.WebSocketListenerPort)).InnerText);
+
+            PostLoadConfig();
+        }
+
+        private static void PostLoadConfig()
+        {
+            try
             {
-                case MaintenanceTimeType.Maintenance:
-                    return ShardStatus.Maintenance;
-                case MaintenanceTimeType.WaitingForMaintenance:
-                    return ShardStatus.Up;
-                case MaintenanceTimeType.None:
-                    return ShardStatus.Up;
-                default:
-                    return ShardStatus.None;
+                SetProgramLevel(System.Enum.Parse<ProgramLevel>(GlobalVariables.ProgramLevel));
+                Logger.SetLogLevel(System.Enum.Parse<LogLevel>(GlobalVariables.LogLevel));
             }
+            catch (Exception e)
+            {
+                Logger.Error(e.Message);
+            }
+        }
+        
+        private static void SaveToXml(string filePath)
+        {
+            XmlDocument doc = new XmlDocument();
+            XmlElement root = doc.CreateElement("Settings");
+            doc.AppendChild(root);
+
+            AppendElement(doc, root, nameof(GlobalVariables.ProgramLevel), GlobalVariables.ProgramLevel);
+            AppendElement(doc, root, nameof(GlobalVariables.LogLevel), GlobalVariables.LogLevel);
+            AppendElement(doc, root, nameof(GlobalVariables.LegacyPipeMode), GlobalVariables.LegacyPipeMode.ToString());
+            AppendElement(doc, root, nameof(GlobalVariables.WebSocketListenerAddress), GlobalVariables.WebSocketListenerAddress);
+            AppendElement(doc, root, nameof(GlobalVariables.WebSocketListenerPort), GlobalVariables.WebSocketListenerPort.ToString());
+
+            doc.Save(filePath);
+        }
+
+        private static void AppendElement(XmlDocument doc, XmlElement root, string elementName, string value)
+        {
+            XmlElement element = doc.CreateElement(elementName);
+            element.InnerText = value;
+            root.AppendChild(element);
         }
 
         public static string MaintenanceInfoToString(MaintenanceInfo maintenanceInfo)
@@ -96,13 +128,15 @@ namespace STOTool.Generic
             switch (maintenanceInfo.ShardStatus)
             {
                 case MaintenanceTimeType.Maintenance:
-                    result = $"The server is currently under maintenance. ETA finishes in {maintenanceInfo.Days} days {maintenanceInfo.Hours} hours {maintenanceInfo.Minutes} minutes {maintenanceInfo.Seconds} seconds.";
+                    result =
+                        $"Server is currently under maintenance. Finishes in {maintenanceInfo.Days} days {maintenanceInfo.Hours} hours {maintenanceInfo.Minutes} minutes {maintenanceInfo.Seconds} seconds.";
                     break;
                 case MaintenanceTimeType.MaintenanceEnded:
-                    result = "The maintenance has ended.";
+                    result = "Maintenance has ended.";
                     break;
                 case MaintenanceTimeType.WaitingForMaintenance:
-                    result = $"The server is waiting for maintenance. ETA starts in {maintenanceInfo.Days} days {maintenanceInfo.Hours} hours {maintenanceInfo.Minutes} minutes {maintenanceInfo.Seconds} seconds.";
+                    result =
+                        $"Server is waiting for maintenance. Starts in {maintenanceInfo.Days} days {maintenanceInfo.Hours} hours {maintenanceInfo.Minutes} minutes {maintenanceInfo.Seconds} seconds.";
                     break;
                 default:
                     result = "";
@@ -110,150 +144,6 @@ namespace STOTool.Generic
             }
 
             return result;
-        }
-
-        private static void OnDownloadFailed(object? sender, ExceptionEventArgs e)
-        {
-            Logger.Error("Download failed: " + e.ErrorException.Message);
-            
-            if (sender is BitmapImage bitmapImage)
-            {
-                Uri originalUri = bitmapImage.UriSource;
-                bitmapImage.UriSource = null;
-                bitmapImage.UriSource = originalUri;
-            }
-        }
-        
-        public static async Task UpdatePerSecond()
-        {
-            try
-            {
-                CachedInfo cachedInfo = await Cache.GetCachedInfoAsync();
-                MaintenanceInfo maintenanceInfo = await ServerStatus.CheckServerAsync();
-
-                if (Helper.NullCheck(cachedInfo))
-                {
-                    return;
-                }
-
-                App.MainWindowInstance!.Dispatcher.InvokeAsync(() =>
-                {
-                    UpdateNews(cachedInfo.NewsInfos!);
-                    UpdateCalendar(cachedInfo.EventInfos!);
-                    UpdateMaintenance(maintenanceInfo);
-                });
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e.Message + e.StackTrace);
-                throw;
-            }
-        }
-
-        private static void UpdateNews(List<NewsInfo> newsInfo)
-        {
-            try
-            {
-                Logger.Info("Updating news info.");
-                
-                for (int i = 0; i < newsInfo.Count && i < 9; i++)
-                {
-                    string textBlockName = "NewsTitle" + (i + 1);
-                    TextBlock? textBlock = App.MainWindowInstance!.FindName(textBlockName) as TextBlock;
-                    
-                    if (textBlock!.Text != newsInfo[i].Title)
-                    {
-                        textBlock.Text = newsInfo[i].Title;
-                    }
-
-                    string imageSourceName = "News" + (i + 1);
-                    Image? image = App.MainWindowInstance!.FindName(imageSourceName) as Image;
-                    
-                    BitmapImage bitmapImage = new BitmapImage(new Uri(newsInfo[i].ImageUrl!, UriKind.Absolute));
-                    
-                    bitmapImage.DownloadFailed += OnDownloadFailed;
-                    
-                    if (image!.Source != bitmapImage)
-                    {
-                        image.Source = bitmapImage;
-                    }
-                }
-            }   
-            catch (Exception e)
-            {
-                Logger.Error(e.Message + e.StackTrace);
-                throw;
-            }
-        }
-
-        private static void UpdateCalendar(List<EventInfo> calendarInfo)
-        {
-            try
-            {
-                Logger.Info("Updating calendar info.");
-
-                if (calendarInfo == null!)
-                {
-                    return;
-                }
-
-                for (int i = 0; i < 3; i++)
-                {
-                    string titleName = "RecentNewsTitle" + (i + 1);
-                    string startTimeName = "RecentNewsStartTime" + (i + 1);
-                    string endTimeName = "RecentNewsEndTime" + (i + 1);
-
-                    TextBlock? titleBlock = App.MainWindowInstance!.FindName(titleName) as TextBlock;
-                    TextBlock? startTimeBlock = App.MainWindowInstance!.FindName(startTimeName) as TextBlock;
-                    TextBlock? endTimeBlock = App.MainWindowInstance!.FindName(endTimeName) as TextBlock;
-
-                    if (titleBlock != null && startTimeBlock != null && endTimeBlock != null)
-                    {
-                        if (i < calendarInfo.Count)
-                        {
-                            titleBlock.Text = calendarInfo[i].Summary;
-                            startTimeBlock.Text = $"Start Date: {calendarInfo[i].StartDate}";
-                            endTimeBlock.Text = $"End Date: {calendarInfo[i].EndDate}";
-                        }
-                        else
-                        {
-                            Logger.Debug("Calendar info is not enough.");
-                            
-                            titleBlock.Text = "";
-                            startTimeBlock.Text = "";
-                            endTimeBlock.Text = "";
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e.Message + e.StackTrace);
-                throw;
-            }
-        }
-        
-        private static void UpdateMaintenance(MaintenanceInfo maintenanceInfo)
-        {
-            try
-            {
-                Logger.Info("Updating maintenance info.");
-                
-                TextBlock? maintenanceMessage = App.MainWindowInstance!.FindName("MaintenanceInfo") as TextBlock;
-                if (maintenanceMessage != null)
-                {
-                    maintenanceMessage.Text = MaintenanceInfoToString(maintenanceInfo);
-                    
-                    Logger.Info(maintenanceInfo.ToString());
-                }
-
-                UpdateServerStatus(ConvertMaintenanceTimeToShardStatus(maintenanceInfo.ShardStatus));
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e.Message + e.StackTrace);
-                throw;
-            }
         }
     }
 }

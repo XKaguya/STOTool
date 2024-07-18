@@ -17,13 +17,14 @@ namespace STOTool.Feature
             try
             {
                 string? message = Api.IsDebugMode() ? Api.GetDebugMessage() : await GetMaintenanceTimeFromLauncherAsync();
-                ShardStatus serverStatus = ExtractServerStatus(message);
-
+                
                 if (message == null)
                 {
-                    Logger.Debug("Statement Null.");
+                    Logger.Debug("There's no message in launcher page.");
                     return new MaintenanceInfo { ShardStatus = MaintenanceTimeType.None };
                 }
+                
+                ShardStatus serverStatus = ExtractServerStatus(message);
 
                 var (date, startTime, endTime) = await ExtractMaintenanceTime(message);
                 var (startEventTime, endEventTime) = TimeUntilMaintenance(date, startTime, endTime);
@@ -71,7 +72,9 @@ namespace STOTool.Feature
         private static ShardStatus ExtractServerStatus(string? message)
         {
             if (string.IsNullOrEmpty(message))
+            {
                 return ShardStatus.None;
+            }
 
             try
             {
@@ -86,7 +89,7 @@ namespace STOTool.Feature
             }
             catch (JsonReaderException ex)
             {
-                Logger.Error($"Failed to parse JSON: {ex.Message}");
+                Logger.Error($"Failed to extract server status: {ex.Message}");
                 return ShardStatus.None;
             }
         }
