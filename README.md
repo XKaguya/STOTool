@@ -25,7 +25,7 @@ A tool for checking the server status of Star Trek Online.
 ![image](https://github.com/XKaguya/StarTrekOnline-ServerStatus/assets/96401952/76ec698e-f3ed-4305-adc7-6c9782616e3c)
 
 # Settings
-```
+```xml
 <Settings>
   <!--Cache life time in minute. -->
   <!--Default value: 15, 10, 1-->
