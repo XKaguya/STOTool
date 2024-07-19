@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
+using iNKORE.UI.WPF.Modern.Controls;
 using Microsoft.Playwright;
 using Newtonsoft.Json;
 using STOTool.Class;
@@ -20,17 +21,27 @@ namespace STOTool.Feature
         private static async Task<HtmlNodeCollection> GetContentAsync()
         {
             var page = await Helper.Browser.NewPageAsync();
-            await page.GotoAsync(Url, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
-
-            string content = await page.ContentAsync();
-            await page.CloseAsync();
             
-            HtmlDocument htmlDoc = new HtmlDocument();
-            htmlDoc.LoadHtml(content);
-            
-            HtmlNodeCollection newsNodes = htmlDoc.DocumentNode.SelectNodes(NewsXPath);
+            try
+            {
+                await page.GotoAsync(Url, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
 
-            return newsNodes;
+                string content = await page.ContentAsync();
+                await page.CloseAsync();
+
+                HtmlDocument htmlDoc = new HtmlDocument();
+                htmlDoc.LoadHtml(content);
+
+                HtmlNodeCollection newsNodes = htmlDoc.DocumentNode.SelectNodes(NewsXPath);
+
+                return newsNodes;
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e.Message + e.StackTrace);
+                await page.CloseAsync();
+                return null;
+            }
         }
 
         private static string ExtractTitle(HtmlNode htmlNode)

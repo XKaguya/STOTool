@@ -13,7 +13,7 @@ namespace STOTool.Generic
 {
     public static class Cache
     {
-        private static readonly IMemoryCache MemoryCache = new MemoryCache(new MemoryCacheOptions());
+        public static readonly IMemoryCache MemoryCache = new MemoryCache(new MemoryCacheOptions());
         private static readonly ConcurrentDictionary<string, SemaphoreSlim> CacheLocks = new();
 
         public static readonly string CacheKey = "CachedInfo";
@@ -25,10 +25,45 @@ namespace STOTool.Generic
         private static readonly TimeSpan FastCacheExpiration = TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[2]);
 
         private static readonly Dictionary<string, DateTime> CacheSetTimes = new();
+        
+        private static readonly Dictionary<string, Timer> Timers = new();
 
         private static SemaphoreSlim GetOrCreateLock(string key)
         {
             return CacheLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+        }
+
+        public static void StartCacheGuard()
+        {
+            Timers[CacheKey] = new Timer(CacheGuardCallback, CacheKey, TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[2] / 2) , TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[0] / 2));
+            Timers[NewsCacheKey] = new Timer(CacheGuardCallback, NewsCacheKey, TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[2] / 2), TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[1] / 2));
+            Timers[FastCacheKey] = new Timer(CacheGuardCallback, FastCacheKey, TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[2] / 2), TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[2] / 2));  
+        }
+
+        public static void CancelCacheGuard()
+        {
+            foreach (var kvp in Timers)
+            {
+                if (Timers.ContainsKey(kvp.Key))
+                {
+                    Timers[kvp.Key].Dispose();
+                    Timers.Remove(kvp.Key);
+                    Logger.Debug($"Cancelled cache guard for key {kvp.Key}.");
+                }
+            }
+        }
+        
+        private static void CacheGuardCallback(object state)
+        {
+            var key = state as string;
+            Logger.Debug($"Refreshing cache {key}.");
+
+            MemoryCache.Remove(key);
+            
+            if (MemoryCache.Get(key) == null)
+            {
+                Logger.Debug($"Cache {key} has been removed due to ensure the callback called.");
+            }
         }
 
         private static void SetCacheItemWithCallback<T>(string key, T value, TimeSpan expiration, PostEvictionDelegate onExpiration)
@@ -37,8 +72,7 @@ namespace STOTool.Generic
             
             var cacheEntryOptions = new MemoryCacheEntryOptions
             {
-                AbsoluteExpirationRelativeToNow = expiration,
-                Priority = CacheItemPriority.Normal
+                AbsoluteExpirationRelativeToNow = expiration
             };
 
             cacheEntryOptions.RegisterPostEvictionCallback(onExpiration);

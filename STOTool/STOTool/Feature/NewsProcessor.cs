@@ -38,21 +38,32 @@ namespace STOTool.Feature
         private static async Task<string> FetchPageContentAsync()
         {
             var page = await Helper.Browser.NewPageAsync();
-            await page.GotoAsync(Url, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
             
-            async Task ClickViewMoreAsync()
+            try
             {
-                await page.EvaluateAsync("document.querySelector('span.news-page__view-more[role=\"button\"]').click();");
-                await page.WaitForTimeoutAsync(500);
+                await page.GotoAsync(Url, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+
+                async Task ClickViewMoreAsync()
+                {
+                    await page.EvaluateAsync(
+                        "document.querySelector('span.news-page__view-more[role=\"button\"]').click();");
+                    await page.WaitForTimeoutAsync(500);
+                }
+
+                await ClickViewMoreAsync();
+                await ClickViewMoreAsync();
+
+                string content = await page.ContentAsync();
+                await page.CloseAsync();
+
+                return content;
             }
-
-            await ClickViewMoreAsync();
-            await ClickViewMoreAsync();
-
-            string content = await page.ContentAsync();
-            await page.CloseAsync();
-
-            return content;
+            catch (Exception e)
+            {
+                Logger.Error(e.Message + e.StackTrace);
+                await page.CloseAsync();
+                return null;
+            }
         }
 
         private static List<NewsInfo> ParseHtmlContent(string content)

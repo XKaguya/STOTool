@@ -16,7 +16,7 @@ namespace STOTool
     /// </summary>
     public partial class MainWindow
     {
-        private const string Version = "1.1.6";
+        private const string Version = "1.1.7";
         
         public static FontFamily StFontFamily { get; private set; }
         
@@ -33,13 +33,10 @@ namespace STOTool
             Logger.ClearLogs();
             PreInit();
             
-            /*Logger.Debug("You're in DEBUG mode.");
-            Api.SetProgramLevel(ProgramLevel.Debug);
-            Logger.SetLogLevel(LogLevel.Debug);*/
             LogWindow.Instance.Show();
             Task.Run(PostInit);
 
-            Logger.Info($"Welcome to STOTool. This is version {Version}. If you meet any problem, please contact me at github.");
+            Logger.Info($"Thanks for using STOTool. Current Version: {Version}. If you meet any problem, please contact me at github.");
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -56,8 +53,7 @@ namespace STOTool
                 Logger.Info($"Proceeding PostInit phase.");
                 
                 await Helper.InitBrowser();
-
-                // Init the caches in the first time.
+                
                 var cacheNewsTask = Cache.GetCachedNewsAsync();
                 var cacheInfoTask = Cache.GetCachedInfoAsync();
                 var cacheMaintenanceTask = Cache.GetFastCachedMaintenanceInfoAsync();
@@ -65,6 +61,8 @@ namespace STOTool
                 await Task.WhenAll(cacheNewsTask, cacheInfoTask, cacheMaintenanceTask);
                 
                 Logger.Info($"PostInit has completed.");
+                
+                Cache.StartCacheGuard();
 
                 while (true)
                 {

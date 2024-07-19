@@ -62,7 +62,7 @@ namespace STOTool.Feature
             }
         }
 
-        public void Stop()
+        public static void Stop()
         {
             if (_cancellationTokenSource != null)
             {

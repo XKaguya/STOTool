@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Playwright;
 using SixLabors.ImageSharp;
@@ -122,109 +123,139 @@ namespace STOTool.Generic
 
         public static async Task<byte[]> GetWebsiteScreenshot(string url)
         {
-            Page = await Browser.NewPageAsync();
+            byte[] returnNull = Encoding.UTF8.GetBytes("null");
             
-            await Page.GotoAsync(url, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
-
-            string button = "#onetrust-accept-btn-handler";
-
-            var element = await Page.QuerySelectorAsync(button);
-
-            if (element != null)
+            try
             {
-                await Page.ClickAsync(button);
+                Page = await Browser.NewPageAsync();
+
+                await Page.GotoAsync(url, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+
+                string button = "#onetrust-accept-btn-handler";
+
+                var element = await Page.QuerySelectorAsync(button);
+
+                if (element != null)
+                {
+                    await Page.ClickAsync(button);
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(2));
+
+                var screenshotData = await Page.ScreenshotAsync(new PageScreenshotOptions { Type = ScreenshotType.Png, FullPage = true });
+
+                await Page.CloseAsync();
+
+                await StoreScreenshotDataIntoCache(url, screenshotData);
+                
+                return screenshotData;
             }
-
-            await Task.Delay(TimeSpan.FromSeconds(2));
-                    
-            var screenshotData = await Page.ScreenshotAsync(new PageScreenshotOptions { Type = ScreenshotType.Png, FullPage = true });
-
-            await Page.CloseAsync();
-
-            await StoreScreenshotDataIntoCache(url, screenshotData);
-
-            return screenshotData;
+            catch (Exception e)
+            {
+                Logger.Error(e.Message + e.StackTrace);
+                await Page.CloseAsync();
+                return returnNull;
+            }
         }
         
         public static async Task<CachedNews> GetAllScreenshot(CachedNews cachedNews)
         {
-            Dictionary<string, byte[]>? screenshotData = new Dictionary<string, byte[]>();
-
-            if (NullCheck(cachedNews))
+            try
             {
+                Dictionary<string, byte[]>? screenshotData = new Dictionary<string, byte[]>();
+
+                if (NullCheck(cachedNews))
+                {
+                    return null;
+                }
+
+                foreach (var link in cachedNews.NewsUrls!)
+                {
+                    Page = await Browser.NewPageAsync();
+
+                    await Page.GotoAsync(link, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+
+                    string button = "#onetrust-accept-btn-handler";
+                    var element = await Page.QuerySelectorAsync(button);
+
+                    if (element != null)
+                    {
+                        await Page.ClickAsync(button);
+                    }
+
+                    await Task.Delay(TimeSpan.FromSeconds(2));
+
+                    screenshotData[link] = await Page.ScreenshotAsync(new PageScreenshotOptions
+                        { Type = ScreenshotType.Png, FullPage = true });
+                    Logger.Info($"Finished download of {link}");
+
+                    await Page.CloseAsync();
+                }
+
+                CachedNews cachedNewsAlter = new CachedNews()
+                {
+                    NewsUrls = cachedNews.NewsUrls,
+                    ScreenshotData = screenshotData
+                };
+
+                return cachedNewsAlter;
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e.Message + e.StackTrace);
+                await Page.CloseAsync();
                 return null;
             }
-
-            foreach (var link in cachedNews.NewsUrls!)
-            {
-                Page = await Browser.NewPageAsync();
-                
-                await Page.GotoAsync(link, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
-                
-                string button = "#onetrust-accept-btn-handler";
-                var element = await Page.QuerySelectorAsync(button);
-                
-                if (element != null)
-                {
-                    await Page.ClickAsync(button);
-                }
-                
-                await Task.Delay(TimeSpan.FromSeconds(2));
-                
-                screenshotData[link] = await Page.ScreenshotAsync(new PageScreenshotOptions { Type = ScreenshotType.Png, FullPage = true });
-                Logger.Info($"Finished download of {link}");
-
-                await Page.CloseAsync();
-            }
-
-            CachedNews cachedNewsAlter = new CachedNews()
-            {
-                NewsUrls = cachedNews.NewsUrls,
-                ScreenshotData = screenshotData
-            };
-
-            return cachedNewsAlter;
         }
         
         public static async Task<CachedNews> GetAllScreenshot()
         {
-            CachedNews cachedNews = await Cache.GetCachedNewsAsync();
-            Dictionary<string, byte[]>? screenshotData = new Dictionary<string, byte[]>();
-
-            if (NullCheck(cachedNews))
+            try
             {
+                CachedNews cachedNews = await Cache.GetCachedNewsAsync();
+                Dictionary<string, byte[]>? screenshotData = new Dictionary<string, byte[]>();
+
+                if (NullCheck(cachedNews))
+                {
+                    return null;
+                }
+
+                foreach (var link in cachedNews.NewsUrls!)
+                {
+                    Page = await Browser.NewPageAsync();
+
+                    await Page.GotoAsync(link, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+
+                    string button = "#onetrust-accept-btn-handler";
+                    var element = await Page.QuerySelectorAsync(button);
+
+                    if (element != null)
+                    {
+                        await Page.ClickAsync(button);
+                    }
+
+                    await Task.Delay(TimeSpan.FromSeconds(2));
+
+                    screenshotData[link] = await Page.ScreenshotAsync(new PageScreenshotOptions { Type = ScreenshotType.Png, FullPage = true });
+                    Logger.Info($"Finished download of {link}");
+
+                    await Page.CloseAsync();
+                }
+
+                CachedNews cachedNewsAlter = new CachedNews()
+                {
+                    NewsUrls = cachedNews.NewsUrls,
+                    ScreenshotData = screenshotData
+                };
+
+                return cachedNewsAlter;
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e.Message + e.StackTrace);
+                await Page.CloseAsync();
                 return null;
             }
-
-            foreach (var link in cachedNews.NewsUrls!)
-            {
-                Page = await Browser.NewPageAsync();
-                
-                await Page.GotoAsync(link, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
-                
-                string button = "#onetrust-accept-btn-handler";
-                var element = await Page.QuerySelectorAsync(button);
-                
-                if (element != null)
-                {
-                    await Page.ClickAsync(button);
-                }
-                
-                await Task.Delay(TimeSpan.FromSeconds(2));
-                
-                screenshotData[link] = await Page.ScreenshotAsync(new PageScreenshotOptions { Type = ScreenshotType.Png, FullPage = true });
-                Logger.Info($"Finished download of {link}");
-
-                await Page.CloseAsync();
-            }
-
-            CachedNews cachedNewsAlter = new CachedNews()
-            {
-                NewsUrls = cachedNews.NewsUrls,
-                ScreenshotData = screenshotData
-            };
-
-            return cachedNewsAlter;
         }
 
         public static async Task<bool> StoreScreenshotDataIntoCache(string url, byte[] data)
@@ -300,7 +331,19 @@ namespace STOTool.Generic
 
         public static bool NullCheck(CachedInfo cachedInfo)
         {
-            return cachedInfo == null;
+            if (cachedInfo == null)
+            {
+                return true;
+            }
+            else
+            {
+                if (cachedInfo.NewsInfos.Count == 0 && cachedInfo.EventInfos.Count == 0)
+                {
+                    return true;
+                }
+
+                return false;
+            }
         }
 
         public static string StringTrim(string str, int length)
