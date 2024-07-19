@@ -14,7 +14,8 @@ A tool for checking the server status of Star Trek Online.
 
 ## Passive Ability
 * Real-time server status monitoring
-* Ability to connect with any client using a pipe server to send information
+* Ability to connect with any client using a pipe server / websocket server to send information
+* Automaticly send the newest news screenshot
 
 # Usage
 1. Register for a Google Calendar API key at [Google API](https://console.cloud.google.com/apis/credentials).
@@ -23,7 +24,7 @@ A tool for checking the server status of Star Trek Online.
 
 ![image](https://github.com/XKaguya/StarTrekOnline-ServerStatus/assets/96401952/76ec698e-f3ed-4305-adc7-6c9782616e3c)
 
-# Server Client link
+# QQ Client Plugin
 ![image](https://github.com/XKaguya/STOTool/assets/96401952/a71fbe08-9f74-43c2-90ed-d594a9ec91f6)
 
 
