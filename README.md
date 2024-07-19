@@ -24,6 +24,30 @@ A tool for checking the server status of Star Trek Online.
 
 ![image](https://github.com/XKaguya/StarTrekOnline-ServerStatus/assets/96401952/76ec698e-f3ed-4305-adc7-6c9782616e3c)
 
+# Settings
+```
+<Settings>
+  <!--Cache life time in minute. -->
+  <!--Default value: 15, 10, 1-->
+  <CacheLifeTime>15,10,1</CacheLifeTime>
+  <!--Program Level. -->
+  <!--Default value: Normal-->
+  <ProgramLevel>Normal</ProgramLevel>
+  <!--Log level. -->
+  <!--Default value: Info-->
+  <LogLevel>Debug</LogLevel>
+  <!--Whether or not enable the Legacy Pipe Server instead of the Websocket Server. -->
+  <!--Default value: False-->
+  <LegacyPipeMode>False</LegacyPipeMode>
+  <!--WebSocket Listener address. -->
+  <!--Default value: http://localhost-->
+  <WebSocketListenerAddress>http://localhost</WebSocketListenerAddress>
+  <!--WebSocket Listener port. -->
+  <!--Default value: 9500-->
+  <WebSocketListenerPort>9500</WebSocketListenerPort>
+</Settings>
+```
+
 # QQ Client Plugin
 ![image](https://github.com/XKaguya/STOTool/assets/96401952/a71fbe08-9f74-43c2-90ed-d594a9ec91f6)
 
