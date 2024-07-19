@@ -49,6 +49,8 @@ A tool for checking the server status of Star Trek Online.
 ```
 
 # QQ Client Plugin
+[Client Plugin](https://github.com/XKaguya/zhenxun_STO_ServerChecker)
+
 ![image](https://github.com/XKaguya/STOTool/assets/96401952/a71fbe08-9f74-43c2-90ed-d594a9ec91f6)
 
 
