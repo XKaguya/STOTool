@@ -300,7 +300,7 @@ namespace STOTool.Generic
 
         public static bool NullCheck(CachedInfo cachedInfo)
         {
-            return cachedInfo.EventInfos == null || cachedInfo.NewsInfos == null;
+            return cachedInfo == null;
         }
 
         public static string StringTrim(string str, int length)

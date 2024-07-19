@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using System.Threading.Tasks;
 using STOTool.Class;
 using STOTool.Generic;
@@ -9,13 +10,15 @@ namespace STOTool.Feature
     {
         private static async Task<byte[]>? GetScreenshot(string url)
         {
+            byte[] returnNull = Encoding.UTF8.GetBytes("null");
+            
             try
             {
                 CachedNews cachedNews = await Cache.GetCachedNewsAsync();
 
                 if (Helper.NullCheck(cachedNews))
                 {
-                    return null;
+                    return returnNull;
                 }
 
                 if (cachedNews.ScreenshotData!.TryGetValue(url, out var screenshotData))
@@ -33,7 +36,7 @@ namespace STOTool.Feature
             catch (Exception e)
             {
                 Logger.Error($"Error in GetScreenshot: {e.Message} {e.StackTrace}");
-                throw;
+                return returnNull;
             }
         }
 
@@ -41,11 +44,18 @@ namespace STOTool.Feature
         {
             try
             {
+                byte[] returnNull = Encoding.UTF8.GetBytes("null");
+                
                 string url = await GetNewsLink(index);
+
+                if (url == null)
+                {
+                    return "null";
+                }
                 
                 byte[] screenshotData = await GetScreenshot(url);
 
-                if (screenshotData == null)
+                if (screenshotData == returnNull)
                 {
                     return "null";
                 }

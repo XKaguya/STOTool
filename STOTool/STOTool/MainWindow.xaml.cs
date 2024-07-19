@@ -16,7 +16,7 @@ namespace STOTool
     /// </summary>
     public partial class MainWindow
     {
-        private const string Version = "1.1.5";
+        private const string Version = "1.1.6";
         
         public static FontFamily StFontFamily { get; private set; }
         

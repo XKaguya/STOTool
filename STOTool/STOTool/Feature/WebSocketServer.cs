@@ -249,12 +249,10 @@ namespace STOTool.Feature
         {
             try
             {
-                string result = await GetNewsImage.CallScreenshot(index);
-
-                if (string.IsNullOrEmpty(result))
+                string result = "null";
+                if (index >= 0 && index <= 9)
                 {
-                    Logger.Warning("Result is null or empty after calling CallScreenshot.");
-                    return;
+                    result = await GetNewsImage.CallScreenshot(index);
                 }
 
                 byte[] resultBytes = Encoding.UTF8.GetBytes(result);
@@ -275,12 +273,6 @@ namespace STOTool.Feature
             try
             {
                 string result = await DrawNewsImage.DrawImageAsync()!;
-
-                if (string.IsNullOrEmpty(result))
-                {
-                    Logger.Warning("Image stream is null.");
-                    return;
-                }
 
                 byte[] resultBytes = Encoding.UTF8.GetBytes(result);
                 await webSocket.SendAsync(new ArraySegment<byte>(resultBytes, 0, resultBytes.Length), WebSocketMessageType.Text, true, CancellationToken.None);

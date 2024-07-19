@@ -110,10 +110,10 @@ namespace STOTool.Feature
 
         public static async Task<string>? DrawImageAsync()
         {
-            CachedInfo cachedInfo = await Cache.GetCachedInfoAsync();
-            MaintenanceInfo maintenanceInfo = await Cache.GetFastCachedMaintenanceInfoAsync();
+            CachedInfo? cachedInfo = await Cache.GetCachedInfoAsync();
+            MaintenanceInfo? maintenanceInfo = await Cache.GetFastCachedMaintenanceInfoAsync();
 
-            if (Helper.NullCheck(cachedInfo))
+            if (Helper.NullCheck(cachedInfo) && Helper.NullCheck(maintenanceInfo))
             {
                 Logger.Error($"Something is null.");
                 return "null";

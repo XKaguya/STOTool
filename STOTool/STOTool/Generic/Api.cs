@@ -1,5 +1,7 @@
 ﻿using System;
+using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Xml;
 using STOTool.Class;
 using STOTool.Enum;
@@ -72,20 +74,50 @@ namespace STOTool.Generic
         
         private static void LoadFromXml(string filePath)
         {
-            XmlDocument doc = new XmlDocument();
-            doc.Load(filePath);
+            try
+            {
+                XmlDocument doc = new XmlDocument();
+                doc.Load(filePath);
 
-            XmlNode root = doc.DocumentElement;
+                XmlNode root = doc.DocumentElement;
 
-            GlobalVariables.ProgramLevel = root.SelectSingleNode(nameof(GlobalVariables.ProgramLevel)).InnerText;
-            GlobalVariables.LogLevel = root.SelectSingleNode(nameof(GlobalVariables.LogLevel)).InnerText;
-            GlobalVariables.LegacyPipeMode = bool.Parse(root.SelectSingleNode(nameof(GlobalVariables.LegacyPipeMode)).InnerText);
-            GlobalVariables.WebSocketListenerAddress = root.SelectSingleNode(nameof(GlobalVariables.WebSocketListenerAddress)).InnerText;
-            GlobalVariables.WebSocketListenerPort = ushort.Parse(root.SelectSingleNode(nameof(GlobalVariables.WebSocketListenerPort)).InnerText);
+                foreach (var prop in typeof(GlobalVariables).GetProperties())
+                {
+                    var node = root.SelectSingleNode(prop.Name);
+                    if (node != null)
+                    {
+                        var value = node.InnerText;
+                        if (prop.PropertyType == typeof(ushort[]))
+                        {
+                            prop.SetValue(null, value.Split(',').Select(ushort.Parse).ToArray());
+                        }
+                        else if (prop.PropertyType == typeof(bool))
+                        {
+                            prop.SetValue(null, bool.Parse(value));
+                        }
+                        else if (prop.PropertyType == typeof(ushort))
+                        {
+                            prop.SetValue(null, ushort.Parse(value));
+                        }
+                        else
+                        {
+                            prop.SetValue(null, value);
+                        }
+                    }
+                    else
+                    {
+                        Logger.Debug($"Node '{prop.Name}' not found in XML.");
+                    }
+                }
 
-            PostLoadConfig();
+                PostLoadConfig();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error loading settings from XML: {ex.Message}");
+            }
         }
-
+        
         private static void PostLoadConfig()
         {
             try
@@ -98,29 +130,46 @@ namespace STOTool.Generic
                 Logger.Error(e.Message);
             }
         }
-        
+
         private static void SaveToXml(string filePath)
         {
             XmlDocument doc = new XmlDocument();
             XmlElement root = doc.CreateElement("Settings");
             doc.AppendChild(root);
 
-            AppendElement(doc, root, nameof(GlobalVariables.ProgramLevel), GlobalVariables.ProgramLevel);
-            AppendElement(doc, root, nameof(GlobalVariables.LogLevel), GlobalVariables.LogLevel);
-            AppendElement(doc, root, nameof(GlobalVariables.LegacyPipeMode), GlobalVariables.LegacyPipeMode.ToString());
-            AppendElement(doc, root, nameof(GlobalVariables.WebSocketListenerAddress), GlobalVariables.WebSocketListenerAddress);
-            AppendElement(doc, root, nameof(GlobalVariables.WebSocketListenerPort), GlobalVariables.WebSocketListenerPort.ToString());
+            foreach (var prop in typeof(GlobalVariables).GetProperties())
+            {
+                var value = prop.GetValue(null);
+                var descriptionAttr = (DescriptionAttribute)prop.GetCustomAttributes(typeof(DescriptionAttribute), false).FirstOrDefault();
+                var description = descriptionAttr?.Description ?? string.Empty;
+
+                if (prop.PropertyType == typeof(ushort[]))
+                {
+                    AppendElement(doc, root, prop.Name, string.Join(",", (ushort[])value), description);
+                }
+                else
+                {
+                    AppendElement(doc, root, prop.Name, value.ToString(), description);
+                }
+            }
 
             doc.Save(filePath);
         }
 
-        private static void AppendElement(XmlDocument doc, XmlElement root, string elementName, string value)
+        private static void AppendElement(XmlDocument doc, XmlNode root, string name, string value, string description)
         {
-            XmlElement element = doc.CreateElement(elementName);
+            var element = doc.CreateElement(name);
             element.InnerText = value;
+            
+            foreach (var line in description.Split('\n'))
+            {
+                var comment = doc.CreateComment(line);
+                root.AppendChild(comment);
+            }
+
             root.AppendChild(element);
         }
-
+        
         public static string MaintenanceInfoToString(MaintenanceInfo maintenanceInfo)
         {
             string result = "";
