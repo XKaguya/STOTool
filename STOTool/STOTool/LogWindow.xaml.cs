@@ -6,7 +6,7 @@ using STOTool.Generic;
 
 namespace STOTool
 {
-    public partial class LogWindow : Window
+    public partial class LogWindow
     {
         public static LogWindow Instance => LazyInstance.Value;
         private RichTextBox? LogRichTextBox { get; set; } = null;
@@ -20,7 +20,7 @@ namespace STOTool
 
             if (LogRichTextBox == null)
             {
-                throw new Exception("Fatal Error. LogRichTextBox is null.");
+                Logger.Critical("Fatal Error. LogRichTextBox is null.");
             }
         }
         
@@ -28,13 +28,25 @@ namespace STOTool
         {
             if (LogRichTextBox != null)
             {
-                LogRichTextBox.Dispatcher.Invoke(() => LogRichTextBox.ScrollToEnd());
+                LogRichTextBox.Dispatcher.BeginInvoke(() => 
+                {
+                    LogRichTextBox.ScrollToEnd();
+                });
+            }
+            else
+            {
+                Logger.Debug("LogRichTextBox is null.");
             }
         }
     
         private void ClearLogClick(object sender, RoutedEventArgs ev)
         {
             Logger.ClearLogs();
+        }
+        
+        private void ReloadClick(object sender, RoutedEventArgs ev)
+        {
+            Api.ParseConfig();
         }
 
         protected override void OnClosing(CancelEventArgs ev)

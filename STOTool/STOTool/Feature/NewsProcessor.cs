@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Web;
 using HtmlAgilityPack;
 using Microsoft.Playwright;
 using STOTool.Class;
@@ -73,7 +75,7 @@ namespace STOTool.Feature
                             break;
                         }
 
-                        string title = node.SelectSingleNode(".//h3[contains(@class, 'news-page__news-post-title')]")?.InnerText.Trim();
+                        string title = HttpUtility.HtmlDecode(node.SelectSingleNode(".//h3[contains(@class, 'news-page__news-post-title')]")?.InnerText.Trim());
                         string imageUrl = node.SelectSingleNode(".//image")?.GetAttributeValue("xlink:href", string.Empty);
                         string newsLink = node.GetAttributeValue("href", string.Empty);
 

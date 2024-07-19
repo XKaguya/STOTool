@@ -20,6 +20,7 @@
             <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
                 <Button Content="Scroll to Bottom" Click="ScrollToBottomClick" Margin="5"/>
                 <Button Content="Clear Log" Click="ClearLogClick" Margin="5"/>
+                <Button Content="Reload Settings" Click="ReloadClick" Margin="5"/>
             </StackPanel>
         </Grid>
     </Border>

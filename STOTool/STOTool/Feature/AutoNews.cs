@@ -113,6 +113,10 @@ namespace STOTool.Feature
             if (result != "null")
             {
                 await StoreIntoFile(currentData);
+                await Cache.RemoveAll();
+
+                Logger.Debug("Due to news has updated, Force refresh all caches.");
+                
                 return result;
             }
 

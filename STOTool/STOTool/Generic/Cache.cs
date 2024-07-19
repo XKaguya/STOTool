@@ -1,27 +1,35 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using STOTool.Class;
 using STOTool.Feature;
+using STOTool.Settings;
 
 namespace STOTool.Generic
 {
     public static class Cache
     {
         private static readonly IMemoryCache MemoryCache = new MemoryCache(new MemoryCacheOptions());
-        private static readonly SemaphoreSlim CacheLock = new SemaphoreSlim(1, 1);
+        private static readonly ConcurrentDictionary<string, SemaphoreSlim> CacheLocks = new();
 
         public static readonly string CacheKey = "CachedInfo";
         public static readonly string NewsCacheKey = "NewsCache";
         public static readonly string FastCacheKey = "FastCache";
 
-        private static readonly TimeSpan CacheExpiration = TimeSpan.FromMinutes(8);
-        private static readonly TimeSpan NewsCacheExpiration = TimeSpan.FromMinutes(5);
-        private static readonly TimeSpan FastCacheExpiration = TimeSpan.FromMinutes(1);
+        private static readonly TimeSpan CacheExpiration = TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[0]);
+        private static readonly TimeSpan NewsCacheExpiration = TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[1]);
+        private static readonly TimeSpan FastCacheExpiration = TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[2]);
 
-        private static readonly Dictionary<string, DateTime> CacheSetTimes = new Dictionary<string, DateTime>();
+        private static readonly Dictionary<string, DateTime> CacheSetTimes = new();
+
+        private static SemaphoreSlim GetOrCreateLock(string key)
+        {
+            return CacheLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+        }
 
         private static void SetCacheItemWithCallback<T>(string key, T value, TimeSpan expiration, PostEvictionDelegate onExpiration)
         {
@@ -52,22 +60,21 @@ namespace STOTool.Generic
 
             try
             {
-                switch (key.ToString())
+                var keyStr = key.ToString();
+                if (keyStr == CacheKey)
                 {
-                    case "CachedInfo":
-                        Logger.Debug("Executing callback for CachedInfo.");
-                        await GetCachedInfoAsync();
-                        break;
-                    
-                    case "NewsCache":
-                        Logger.Debug("Executing callback for NewsCache.");
-                        await GetCachedNewsAsync();
-                        break;
-
-                    case "FastCache":
-                        Logger.Debug("Executing callback for FastCache.");
-                        await GetFastCachedMaintenanceInfoAsync();
-                        break;
+                    Logger.Debug("Executing callback for CachedInfo.");
+                    await GetCachedInfoAsync();
+                }
+                else if (keyStr == NewsCacheKey)
+                {
+                    Logger.Debug("Executing callback for NewsCache.");
+                    await GetCachedNewsAsync();
+                }
+                else if (keyStr == FastCacheKey)
+                {
+                    Logger.Debug("Executing callback for FastCache.");
+                    await GetFastCachedMaintenanceInfoAsync();
                 }
             }
             catch (Exception e)
@@ -78,7 +85,13 @@ namespace STOTool.Generic
 
         public static async Task<CachedInfo> GetCachedInfoAsync()
         {
-            await CacheLock.WaitAsync();
+            var lockHandle = GetOrCreateLock(CacheKey);
+            if (!await lockHandle.WaitAsync(0))
+            {
+                Logger.Debug("CacheLock is already acquired by another operation.");
+                return null;
+            }
+
             try
             {
                 if (MemoryCache.TryGetValue(CacheKey, out CachedInfo cachedInfo))
@@ -105,13 +118,19 @@ namespace STOTool.Generic
             }
             finally
             {
-                CacheLock.Release();
+                lockHandle.Release();
             }
         }
 
         public static async Task<MaintenanceInfo> GetFastCachedMaintenanceInfoAsync()
         {
-            await CacheLock.WaitAsync();
+            var lockHandle = GetOrCreateLock(FastCacheKey);
+            if (!await lockHandle.WaitAsync(0))
+            {
+                Logger.Debug("CacheLock is already acquired by another operation.");
+                return null;
+            }
+            
             try
             {
                 if (MemoryCache.TryGetValue(FastCacheKey, out MaintenanceInfo maintenanceInfo))
@@ -135,13 +154,19 @@ namespace STOTool.Generic
             }
             finally
             {
-                CacheLock.Release();
+                lockHandle.Release();
             }
         }
 
         public static async Task<CachedNews> GetCachedNewsAsync()
         {
-            await CacheLock.WaitAsync();
+            var lockHandle = GetOrCreateLock(NewsCacheKey);
+            if (!await lockHandle.WaitAsync(0))
+            {
+                Logger.Debug("CacheLock is already acquired by another operation.");
+                return null;
+            }
+            
             try
             {
                 if (MemoryCache.TryGetValue(NewsCacheKey, out CachedNews cachedNews))
@@ -172,7 +197,7 @@ namespace STOTool.Generic
             }
             finally
             {
-                CacheLock.Release();
+                lockHandle.Release();
             }
         }
 
@@ -195,7 +220,12 @@ namespace STOTool.Generic
 
         public static async Task RemoveAll()
         {
-            await CacheLock.WaitAsync();
+            var allLocks = CacheLocks.Values.ToList();
+            foreach (var lockHandle in allLocks)
+            {
+                await lockHandle.WaitAsync();
+            }
+
             try
             {
                 Logger.Debug("Removing all cache items.");
@@ -213,7 +243,10 @@ namespace STOTool.Generic
             }
             finally
             {
-                CacheLock.Release();
+                foreach (var lockHandle in allLocks)
+                {
+                    lockHandle.Release();
+                }
             }
         }
     }
