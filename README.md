@@ -1,10 +1,12 @@
 # STO-Tool
 
-A tool for checking the server status of Star Trek Online.
+A tool for checking the server status of Star Trek Online written in C#.
 
 ![img](https://github.com/XKaguya/STOTool/assets/96401952/02eaa90d-a557-43be-a7fd-434c24c395a6)
 
 # Features
+## Fast
+By using Cache, The program will response with specific information less than 5 sec.
 ## Initiative Ability
 * Real-time news display
   
@@ -22,7 +24,8 @@ A tool for checking the server status of Star Trek Online.
 
 2. Download the credentials JSON file and place it near the executable file, like this:
 
-![image](https://github.com/XKaguya/StarTrekOnline-ServerStatus/assets/96401952/76ec698e-f3ed-4305-adc7-6c9782616e3c)
+![image](https://github.com/user-attachments/assets/c52f22f3-4b31-49aa-83ba-5673f2bd161e)
+
 
 # Settings
 ```xml
@@ -52,6 +55,8 @@ A tool for checking the server status of Star Trek Online.
 [Client Plugin](https://github.com/XKaguya/zhenxun_STO_ServerChecker)
 
 ![image](https://github.com/XKaguya/STOTool/assets/96401952/a71fbe08-9f74-43c2-90ed-d594a9ec91f6)
+
+**Currently does not support other platforms. Contributions are welcome.**
 
 
 
