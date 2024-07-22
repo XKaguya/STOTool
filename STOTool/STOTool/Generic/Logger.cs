@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
-using System.Reflection;
-using System.Text.RegularExpressions;
+using System.Runtime.CompilerServices;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
@@ -23,7 +21,7 @@ namespace STOTool.Generic
         static Logger()
         {
             _logRichTextBox = new RichTextBox();
-            CriticalLogPath = $"[{DateTime.Now.Month}-{DateTime.Now.Day}-{DateTime.Now.Hour}-{DateTime.Now.Minute}]Critical.log";
+            CriticalLogPath = $"[{DateTime.Now:MM-dd-HH-mm}]Critical.log";
             File.WriteAllText(LogFilePath, string.Empty);
         }
 
@@ -51,98 +49,54 @@ namespace STOTool.Generic
             return _logRichTextBox.Background == color;
         }
 
-        public static bool Info(string message)
+        public static bool Info(string message, [CallerMemberName] string callerName = "")
         {
-            if (_currentLogLevel >= LogLevel.Info)
-            {
-                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{GetCallerName()}] [INFO]: {message}";
-                WriteLogToFile(logMessage);
-                LogAddLine(logMessage, Brushes.CornflowerBlue);
-                return true;
-            }
-            
-            return false;
+            return Log(message, LogLevel.Info, callerName);
         }
 
-        public static bool Warning(string message)
+        public static bool Warning(string message, [CallerMemberName] string callerName = "")
         {
-            if (_currentLogLevel >= LogLevel.Warning)
-            {
-                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{GetCallerName()}] [WARNING]: {message}";
-                WriteLogToFile(logMessage);
-                LogAddLine(logMessage, Brushes.Maroon);
-                return true;
-            }
-            
-            return false;
+            return Log(message, LogLevel.Warning, callerName);
         }
 
-        public static bool Error(string message)
+        public static bool Error(string message, [CallerMemberName] string callerName = "")
         {
-            if (_currentLogLevel >= LogLevel.Error)
-            {
-                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [Exception Source: {GetCallerName()}] [ERROR]: {message}";
-                WriteLogToFile(logMessage);
-                LogAddLine(logMessage, Brushes.Red);
-                return true;
-            }
-            
-            return false;
+            return Log(message, LogLevel.Error, callerName);
         }
 
-        [STAThread]
-        public static bool Debug(string message)
+        public static bool Debug(string message, [CallerMemberName] string callerName = "")
         {
-            if (_currentLogLevel >= LogLevel.Debug)
-            {
-                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{GetCallerName()}] [DEBUG]: {message}";
-                WriteLogToFile(logMessage);
-                LogAddLine(logMessage, Brushes.LightSlateGray);
-                return true;
-            }
-            
-            return false;
+            return Log(message, LogLevel.Debug, callerName);
         }
-        
-        [STAThread]
-        public static bool Trace(string message)
+
+        public static bool Trace(string message, [CallerMemberName] string callerName = "")
         {
-            if (_currentLogLevel >= LogLevel.Trace)
-            {
-                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{GetCallerName()}] [TRACE]: {message}";
-                WriteLogToFile(logMessage);
-                LogAddLine(logMessage, Brushes.Gold);
-                return true;
-            }
-            
-            return false;
+            return Log(message, LogLevel.Trace, callerName);
         }
-        
-        [STAThread]
-        public static bool Fatal(string message)
+
+        public static bool Fatal(string message, [CallerMemberName] string callerName = "")
         {
-            if (_currentLogLevel >= LogLevel.Fatal)
-            {
-                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [Exception Source: {GetCallerName()}] [FATAL]: {message}";
-                WriteLogToFile(logMessage);
-                LogAddLine(logMessage, Brushes.Red);
-                return true;
-            }
-            
-            return false;
+            return Log(message, LogLevel.Fatal, callerName);
         }
-        
-        [STAThread]
-        public static bool Critical(string message)
+
+        public static bool Critical(string message, [CallerMemberName] string callerName = "")
         {
-            if (_currentLogLevel >= LogLevel.Critical)
+            return Log(message, LogLevel.Critical, callerName);
+        }
+
+        private static bool Log(string message, LogLevel level, string callerName)
+        {
+            if (_currentLogLevel >= level)
             {
-                string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [Exception Source: {GetCallerName()}] [CRITICAL]: {message}";
-                CriticalLog(logMessage);
-                LogAddLine(logMessage, Brushes.Red);
+                string logMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{callerName}] [{level}]: {message}";
+                WriteLogToFile(logMessage);
+                LogAddLine(logMessage, GetColorByLogLevel(level));
+                if (level == LogLevel.Critical)
+                {
+                    WriteCriticalLogToFile(logMessage);
+                }
                 return true;
             }
-            
             return false;
         }
 
@@ -157,48 +111,28 @@ namespace STOTool.Generic
                 else
                 {
                     _logCount++;
-                    
-                    Paragraph paragraph = new Paragraph(new Run(message));
-                    paragraph.Foreground = color;
+                    Paragraph paragraph = new Paragraph(new Run(message))
+                    {
+                        Foreground = color
+                    };
                     _logRichTextBox.Document.Blocks.Add(paragraph);
-                    _logRichTextBox.ScrollToEnd();
                 }
             });
         }
 
         private static void WriteLogToFile(string message)
         {
-            try
+            lock (LockObject)
             {
-                lock (LockObject)
-                {
-                    using (StreamWriter writer = new StreamWriter(LogFilePath, true))
-                    {
-                        writer.WriteLine(message);
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Error(e.Message + e.StackTrace);
-                throw;
+                File.AppendAllText(LogFilePath, message + Environment.NewLine);
             }
         }
-        
-        private static void CriticalLog(string message)
+
+        private static void WriteCriticalLogToFile(string message)
         {
-            try
+            lock (LockObject)
             {
-                lock (LockObject)
-                {
-                    using StreamWriter writer = new StreamWriter(CriticalLogPath, true);
-                    writer.WriteLine(message);
-                }
-            }
-            catch (Exception e)
-            {
-                Error(e.Message + e.StackTrace);
-                throw;
+                File.AppendAllText(CriticalLogPath, message + Environment.NewLine);
             }
         }
 
@@ -208,34 +142,19 @@ namespace STOTool.Generic
             _logCount = 0;
         }
 
-        private static string GetCallerName()
+        private static SolidColorBrush GetColorByLogLevel(LogLevel level)
         {
-            MethodBase currentMethod = MethodBase.GetCurrentMethod();
-
-            int frameCount = 0;
-
-            while (true)
+            return level switch
             {
-                frameCount++;
-                
-                StackFrame callerFrame = new StackFrame(frameCount);
-                MethodBase callerMethod = callerFrame.GetMethod();
-
-                if (callerMethod == null)
-                {
-                    return "Unknown Caller";
-                }
-                else if (callerMethod.DeclaringType.Name == currentMethod.DeclaringType.Name || callerMethod.DeclaringType.Namespace != "STOTool")
-                {
-                    continue;
-                }
-                else
-                {
-                    string cleanMethodName = Regex.Replace(callerMethod.DeclaringType.Name, @"^<(\w+)>.*$", "$1");
-                    
-                    return cleanMethodName;
-                }
-            }
+                LogLevel.Info => Brushes.CornflowerBlue,
+                LogLevel.Warning => Brushes.Maroon,
+                LogLevel.Error => Brushes.Red,
+                LogLevel.Debug => Brushes.LightSlateGray,
+                LogLevel.Trace => Brushes.Gold,
+                LogLevel.Fatal => Brushes.DarkRed,
+                LogLevel.Critical => Brushes.Red,
+                _ => Brushes.Black,
+            };
         }
     }
 }

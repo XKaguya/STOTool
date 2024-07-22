@@ -71,7 +71,7 @@ namespace STOTool
       private void LogException(Exception ex)
       {
           Logger.Critical("ERROR! Unhandled exception!");
-          Logger.Critical($"Exception:\n{ex.Message}\n{ex.StackTrace}");
+          Logger.Critical($"Exception:{ex.Message}\n{ex.StackTrace}");
       }
       
       private void KillExistingInstances()

@@ -3,6 +3,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 using HtmlAgilityPack;
 using Microsoft.Playwright;
 using Newtonsoft.Json;
@@ -20,22 +21,32 @@ namespace STOTool.Feature
         private static async Task<HtmlNodeCollection> GetContentAsync()
         {
             var page = await Helper.Browser.NewPageAsync();
-            await page.GotoAsync(Url, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
-
-            string content = await page.ContentAsync();
-            await page.CloseAsync();
             
-            HtmlDocument htmlDoc = new HtmlDocument();
-            htmlDoc.LoadHtml(content);
-            
-            HtmlNodeCollection newsNodes = htmlDoc.DocumentNode.SelectNodes(NewsXPath);
+            try
+            {
+                await page.GotoAsync(Url, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
 
-            return newsNodes;
+                string content = await page.ContentAsync();
+                await page.CloseAsync();
+
+                HtmlDocument htmlDoc = new HtmlDocument();
+                htmlDoc.LoadHtml(content);
+
+                HtmlNodeCollection newsNodes = htmlDoc.DocumentNode.SelectNodes(NewsXPath);
+
+                return newsNodes;
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e.Message + e.StackTrace);
+                await page.CloseAsync();
+                return null;
+            }
         }
 
         private static string ExtractTitle(HtmlNode htmlNode)
         {
-            string title = htmlNode.SelectSingleNode(".//h3[contains(@class, 'news-page__news-post-title')]")?.InnerText.Trim();
+            string title = HttpUtility.HtmlDecode(htmlNode.SelectSingleNode(".//h3[contains(@class, 'news-page__news-post-title')]")?.InnerText.Trim());
             return title;
         }
         
@@ -63,14 +74,6 @@ namespace STOTool.Feature
             var hashBytes = sha256.ComputeHash(inputBytes);
             return Convert.ToBase64String(hashBytes);
         }
-        
-        private static string GenerateHash(HtmlNode htmlNode)
-        {
-            using var sha256 = SHA256.Create();
-            var inputBytes = Encoding.UTF8.GetBytes(ExtractTitle(htmlNode));
-            var hashBytes = sha256.ComputeHash(inputBytes);
-            return Convert.ToBase64String(hashBytes);
-        }
 
         private static async Task StoreIntoFile(NewsNodes newsData)
         {
@@ -84,6 +87,13 @@ namespace STOTool.Feature
             {
                 Logger.Info("No previous data to compare.");
                 var data = await FetchPageContentAsync();
+
+                if (Helper.NullCheck(data))
+                {
+                    Logger.Debug("Somehow some nodes are null or empty. Write into file canceled.");
+                    return "null";
+                }
+                
                 await StoreIntoFile(data);
                 return "null";
             }
@@ -98,6 +108,8 @@ namespace STOTool.Feature
             }
             else
             {
+                await Cache.RemoveAll();
+                
                 Logger.Info("Data has changed.");
                 var result = await GetNewsImage.CallScreenshot(0);
                 
@@ -113,7 +125,6 @@ namespace STOTool.Feature
             if (result != "null")
             {
                 await StoreIntoFile(currentData);
-                await Cache.RemoveAll();
 
                 Logger.Debug("Due to news has updated, Force refresh all caches.");
                 

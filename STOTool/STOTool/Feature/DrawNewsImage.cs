@@ -8,6 +8,8 @@ using STOTool.Class;
 using STOTool.Enum;
 using STOTool.Generic;
 using System.IO;
+using System.Linq;
+using SixLabors.Fonts;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Png;
 using EventInfo = STOTool.Class.EventInfo;
@@ -17,6 +19,25 @@ namespace STOTool.Feature
 {
     public class DrawNewsImage
     {
+        private static Dictionary<int, Font> Fonts { get; set; } = new();
+        
+        private const int EventInfoOffsetX = 250;
+        private const int EventInfoStartYOffset = -400;
+        private const int EventInfoStartDateYOffset = -350;
+        private const int EventInfoEndDateYOffset = -300;
+        private const int MaintenanceMessageOffsetX = 20;
+        private const int MaintenanceMessageOffsetY = 870;
+        private const int NewsImageWidth = 432;
+        private const int NewsImageHeightOffset = 230;
+        private const int NewsImageRowHeight = 293;
+        private const int MaxNewsCount = 9;
+
+        public static void InitFonts()
+        {
+            Fonts.Add(50, MainWindow.StFontFamily.CreateFont(50));
+            Fonts.Add(60, MainWindow.StFontFamily.CreateFont(60));
+        }
+        
         private static async Task<Image<Rgba32>> LoadImageAsync(byte[] imageBytes)
         {
             try
@@ -35,74 +56,65 @@ namespace STOTool.Feature
             }
         }
 
-        private static async Task<string> DrawOnBackgroundAsync(Image<Rgba32> backgroundImage, List<Image<Rgba32>> newsImages, List<string> newsTitles, MaintenanceInfo maintenanceInfo, List<EventInfo> eventInfos, int startX, int startY)
+        private static void DrawEventInfos(Image<Rgba32> backgroundImage, List<EventInfo> eventInfos, int startX, int startY)
         {
+            int xE = startX;
+            int yE = startY;
 
+            foreach (var eventInfo in eventInfos)
+            {
+                backgroundImage.Mutate(ctx => ctx.DrawText(Helper.StringTrim(eventInfo.Summary!, 18), Fonts[50], Color.Gray, new PointF(xE - 50, yE + EventInfoStartYOffset)));
+                backgroundImage.Mutate(ctx => ctx.DrawText(Helper.StringTrim(eventInfo.StartDate!, 15), Fonts[50], Color.White, new PointF(xE - 50, yE + EventInfoStartDateYOffset)));
+                backgroundImage.Mutate(ctx => ctx.DrawText(Helper.StringTrim(eventInfo.EndDate!, 15), Fonts[50], Color.White, new PointF(xE - 50, yE + EventInfoEndDateYOffset)));
+
+                xE += EventInfoOffsetX;
+            }
+        }
+
+        private static void DrawMaintenanceInfo(Image<Rgba32> backgroundImage, MaintenanceInfo maintenanceInfo, int startX, int startY)
+        {
+            string maintenanceMessage = Api.MaintenanceInfoToString(maintenanceInfo);
+            backgroundImage.Mutate(ctx => ctx.DrawText(maintenanceMessage, Fonts[60], Color.White, new PointF(startX + MaintenanceMessageOffsetX, startY + MaintenanceMessageOffsetY)));
+        }
+
+        private static void DrawNewsImagesAndTitles(Image<Rgba32> backgroundImage, List<Image<Rgba32>> newsImages, List<string> newsTitles, int startX, int startY)
+        {
             int x = startX;
             int y = startY;
-
             int count = 0;
-
-            string maintenanceMessage = Api.MaintenanceInfoToString(maintenanceInfo);
-
-#if DEBUG
-            maintenanceMessage = "TESTTESTTESTTESTTEST";
-            
-            EventInfo testInfo = new EventInfo()
-            {
-                EndDate = "TESTTESTTESTTESTTEST",
-                StartDate = "TESTTESTTESTTESTTEST",
-                Summary = "TESTTESTTESTTESTTEST",
-            };
-
-            List<EventInfo> eventInfoTest = new List<EventInfo>();
-            eventInfoTest.Add(testInfo);
-            eventInfoTest.Add(testInfo);
-            eventInfoTest.Add(testInfo);
-#endif
-            int xE = x;
-            int yE = y;
-            
-#if DEBUG
-            foreach (var eventInfo in eventInfoTest)
-#else
-            foreach (var eventInfo in eventInfos)
-#endif
-            {
-                backgroundImage.Mutate(ctx => ctx.DrawText(Helper.StringTrim(eventInfo.Summary!, 15), MainWindow.StFontFamily.CreateFont(50), Color.Gray, new PointF(xE - 50, yE - 400)));
-                backgroundImage.Mutate(ctx => ctx.DrawText(Helper.StringTrim(eventInfo.StartDate!, 15), MainWindow.StFontFamily.CreateFont(50), Color.White, new PointF(xE - 50, yE - 350)));
-                backgroundImage.Mutate(ctx => ctx.DrawText(Helper.StringTrim(eventInfo.EndDate!, 15), MainWindow.StFontFamily.CreateFont(50), Color.White, new PointF(xE - 50, yE - 300)));
-
-                xE += 250;
-            }
-            
-            backgroundImage.Mutate(ctx => ctx.DrawText(maintenanceMessage, MainWindow.StFontFamily.CreateFont(60), Color.White, new PointF(x + 20, y + 870)));
 
             foreach (var newsImage in newsImages)
             {
                 backgroundImage.Mutate(ctx => ctx.DrawImage(newsImage, new Point(x, y), 1f));
-                backgroundImage.Mutate(ctx => ctx.DrawText(Helper.StringTrim(newsTitles[count], 32), MainWindow.StFontFamily.CreateFont(50), Color.White, new PointF(x, y + 230)));
+                backgroundImage.Mutate(ctx => ctx.DrawText(Helper.StringTrim(newsTitles[count], 27), Fonts[50], Color.White, new PointF(x, y + NewsImageHeightOffset)));
 
-                x += 432;
+                x += NewsImageWidth;
 
-                if (x + 432 > backgroundImage.Width)
+                if (x + NewsImageWidth > backgroundImage.Width)
                 {
                     x = startX;
-                    y += 293;
+                    y += NewsImageRowHeight;
                 }
 
                 count++;
 
-                if (count == 9)
+                if (count == MaxNewsCount)
                 {
                     break;
                 }
             }
-            
-#if DEBUG
-            await backgroundImage.SaveAsync("test.png");
-#endif
+        }
 
+        private static string DrawOnBackground(Image<Rgba32> backgroundImage, List<Image<Rgba32>> newsImages, List<string> newsTitles, MaintenanceInfo maintenanceInfo, List<EventInfo> eventInfos, int startX, int startY)
+        {
+            eventInfos = eventInfos.Skip(eventInfos.Count - 3).Take(3).ToList();
+            
+            DrawEventInfos(backgroundImage, eventInfos, startX, startY);
+            
+            DrawMaintenanceInfo(backgroundImage, maintenanceInfo, startX, startY);
+            
+            DrawNewsImagesAndTitles(backgroundImage, newsImages, newsTitles, startX, startY);
+            
             string result = backgroundImage.ToBase64String(PngFormat.Instance);
 
             return result;
@@ -165,7 +177,8 @@ namespace STOTool.Feature
 
             if (backgroundImage != null)
             {
-                result = await DrawOnBackgroundAsync(backgroundImage, newsImages, newsTitles, maintenanceInfo, cachedInfo.EventInfos!, startX, startY);
+                backgroundImage = backgroundImage.Clone();
+                result = DrawOnBackground(backgroundImage, newsImages, newsTitles, maintenanceInfo, cachedInfo.EventInfos!, startX, startY);
             }
             else
             {

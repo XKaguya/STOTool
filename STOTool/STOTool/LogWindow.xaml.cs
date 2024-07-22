@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using STOTool.Feature;
 using STOTool.Generic;
 
 namespace STOTool
@@ -55,7 +56,14 @@ namespace STOTool
             
             // ev.Cancel = true;
             // this.Hide();
-
+            
+            WebSocketServer.Stop();
+            Logger.Info("WebSocket server has stopped.");
+            
+            Cache.MemoryCache.Dispose();
+            Cache.CancelCacheGuard();
+            Logger.Info("Cache has been disposed.");
+            
             Environment.Exit(0);
         }
     }

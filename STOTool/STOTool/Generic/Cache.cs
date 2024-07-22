@@ -13,7 +13,7 @@ namespace STOTool.Generic
 {
     public static class Cache
     {
-        private static readonly IMemoryCache MemoryCache = new MemoryCache(new MemoryCacheOptions());
+        public static readonly IMemoryCache MemoryCache = new MemoryCache(new MemoryCacheOptions());
         private static readonly ConcurrentDictionary<string, SemaphoreSlim> CacheLocks = new();
 
         public static readonly string CacheKey = "CachedInfo";
@@ -25,10 +25,57 @@ namespace STOTool.Generic
         private static readonly TimeSpan FastCacheExpiration = TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[2]);
 
         private static readonly Dictionary<string, DateTime> CacheSetTimes = new();
+        
+        private static readonly Dictionary<string, Timer> Timers = new();
 
         private static SemaphoreSlim GetOrCreateLock(string key)
         {
             return CacheLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+        }
+
+        public static void StartCacheGuard()
+        {
+            Timers[CacheKey] = new Timer(CacheGuardCallback, CacheKey, TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[0] / 2) , TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[0] / 2));
+            Timers[NewsCacheKey] = new Timer(CacheGuardCallback, NewsCacheKey, TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[1] / 2), TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[1] / 2));
+            Timers[FastCacheKey] = new Timer(CacheGuardCallback, FastCacheKey, TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[2] / 2), TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[2] / 2));  
+        }
+
+        public static void CancelCacheGuard()
+        {
+            foreach (var kvp in Timers)
+            {
+                if (Timers.ContainsKey(kvp.Key))
+                {
+                    Timers[kvp.Key].Dispose();
+                    Timers.Remove(kvp.Key);
+                    Logger.Debug($"Cancelled cache guard for key {kvp.Key}.");
+                }
+            }
+        }
+        
+        private static async void CacheGuardCallback(object state)
+        {
+            var key = state as string;
+            Logger.Debug($"Refreshing cache {key}.");
+
+            if (key == CacheKey)
+            {
+                await GetCachedInfoAsync();
+            }
+            else if (key == NewsCacheKey)
+            {
+                await GetCachedNewsAsync();
+            }
+            else if (key == FastCacheKey)
+            {
+                await GetFastCachedMaintenanceInfoAsync();
+            }
+            else
+            {
+                Logger.Critical($"Unexpected key {key}. This shouldn't happen.");
+            }
+
+            Logger.Debug($"Cache {key} has been referenced to ensure the cache callback.");
         }
 
         private static void SetCacheItemWithCallback<T>(string key, T value, TimeSpan expiration, PostEvictionDelegate onExpiration)
@@ -37,8 +84,7 @@ namespace STOTool.Generic
             
             var cacheEntryOptions = new MemoryCacheEntryOptions
             {
-                AbsoluteExpirationRelativeToNow = expiration,
-                Priority = CacheItemPriority.Normal
+                AbsoluteExpirationRelativeToNow = expiration
             };
 
             cacheEntryOptions.RegisterPostEvictionCallback(onExpiration);
@@ -189,7 +235,7 @@ namespace STOTool.Generic
                     cachedNews.ScreenshotData[link] = null;
                 }
 
-                var cachedNewsInternal = await Helper.GetAllScreenshot(cachedNews);
+                var cachedNewsInternal = await Helper.GetAllScreenshots(cachedNews);
 
                 SetCacheItemWithCallback(NewsCacheKey, cachedNewsInternal, NewsCacheExpiration, OnExpired);
 
@@ -201,21 +247,9 @@ namespace STOTool.Generic
             }
         }
 
-        public static void UpdateCache(CachedNews cachedNews)
-        {
-            Logger.Debug("Updating NewsCache.");
-            SetCacheItemWithCallback(NewsCacheKey, cachedNews, NewsCacheExpiration, OnExpired);
-        }
-
         public static void Set<T>(string key, T value)
         {
             SetCacheItemWithCallback(key, value, NewsCacheExpiration, OnExpired);
-        }
-
-        public static bool TryGetValue<T>(string key, out T value)
-        {
-            Logger.Debug($"Trying to get cache item with key {key}.");
-            return MemoryCache.TryGetValue(key, out value);
         }
 
         public static async Task RemoveAll()

@@ -4,10 +4,10 @@
     {
         Critical,
         Fatal,
-        Info,
         Warning,
         Error,
         Trace,
+        Info,
         Debug,
     }
 }
