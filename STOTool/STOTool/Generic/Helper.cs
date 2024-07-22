@@ -17,7 +17,7 @@ namespace STOTool.Generic
         private static HttpClient? _httpClient;
         private static readonly Dictionary<string, byte[]> ImageCache = new ();
         
-        private static IBrowser? BrowserInternal { get; set ; }
+        private static IBrowser? BrowserInternal { get; set; }
 
         public static IBrowser Browser
         {
@@ -25,12 +25,13 @@ namespace STOTool.Generic
             {
                 if (BrowserInternal == null)
                 {
-                    throw new NullReferenceException();
+                    InitBrowser();
                 }
 
                 return BrowserInternal;
             }
         }
+
         private static IPage? Page { get; set; }
         
         private static readonly Lazy<Task<IPlaywright>> LazyPlaywright = new (() => Playwright.CreateAsync());
@@ -44,13 +45,24 @@ namespace STOTool.Generic
         });
         
         private static Task<IBrowser> GetBrowserAsync() => LazyBrowser.Value;
-        
-        public static async Task<bool> InitBrowser()
+        private static IBrowser GetBrowser() => LazyBrowser.Value.Result;
+
+        public static async Task<bool> InitBrowserAsync()
         {
             if (BrowserInternal == null)
             {
                 BrowserInternal = await GetBrowserAsync();
+                return true;
+            }
 
+            return false;
+        }
+        
+        private static bool InitBrowser()
+        {
+            if (BrowserInternal == null)
+            {
+                BrowserInternal = GetBrowser();
                 return true;
             }
 
@@ -131,13 +143,12 @@ namespace STOTool.Generic
 
                 await Page.GotoAsync(url, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
 
-                string button = "#onetrust-accept-btn-handler";
-
-                var element = await Page.QuerySelectorAsync(button);
+                const string buttonSelector = "#onetrust-accept-btn-handler";
+                var element = await Page.QuerySelectorAsync(buttonSelector);
 
                 if (element != null)
                 {
-                    await Page.ClickAsync(button);
+                    await Page.ClickAsync(buttonSelector);
                 }
 
                 await Task.Delay(TimeSpan.FromSeconds(2));
@@ -157,12 +168,12 @@ namespace STOTool.Generic
                 return returnNull;
             }
         }
-        
-        public static async Task<CachedNews> GetAllScreenshot(CachedNews cachedNews)
+
+        public static async Task<CachedNews?> GetAllScreenshots(CachedNews cachedNews)
         {
             try
             {
-                Dictionary<string, byte[]>? screenshotData = new Dictionary<string, byte[]>();
+                var screenshotData = new Dictionary<string, byte[]>();
 
                 if (NullCheck(cachedNews))
                 {
@@ -175,80 +186,32 @@ namespace STOTool.Generic
 
                     await Page.GotoAsync(link, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
 
-                    string button = "#onetrust-accept-btn-handler";
-                    var element = await Page.QuerySelectorAsync(button);
+                    const string buttonSelector = "#onetrust-accept-btn-handler";
+                    var element = await Page.QuerySelectorAsync(buttonSelector);
 
                     if (element != null)
                     {
-                        await Page.ClickAsync(button);
+                        await Page.ClickAsync(buttonSelector);
                     }
 
                     await Task.Delay(TimeSpan.FromSeconds(2));
 
                     screenshotData[link] = await Page.ScreenshotAsync(new PageScreenshotOptions
-                        { Type = ScreenshotType.Png, FullPage = true });
+                    { 
+                        Type = ScreenshotType.Png, 
+                        FullPage = true 
+                    });
+
                     Logger.Info($"Finished download of {link}");
 
                     await Page.CloseAsync();
                 }
 
-                CachedNews cachedNewsAlter = new CachedNews()
+                return new CachedNews
                 {
                     NewsUrls = cachedNews.NewsUrls,
                     ScreenshotData = screenshotData
                 };
-
-                return cachedNewsAlter;
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e.Message + e.StackTrace);
-                await Page.CloseAsync();
-                return null;
-            }
-        }
-        
-        public static async Task<CachedNews> GetAllScreenshot()
-        {
-            try
-            {
-                CachedNews cachedNews = await Cache.GetCachedNewsAsync();
-                Dictionary<string, byte[]>? screenshotData = new Dictionary<string, byte[]>();
-
-                if (NullCheck(cachedNews))
-                {
-                    return null;
-                }
-
-                foreach (var link in cachedNews.NewsUrls!)
-                {
-                    Page = await Browser.NewPageAsync();
-
-                    await Page.GotoAsync(link, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
-
-                    string button = "#onetrust-accept-btn-handler";
-                    var element = await Page.QuerySelectorAsync(button);
-
-                    if (element != null)
-                    {
-                        await Page.ClickAsync(button);
-                    }
-
-                    await Task.Delay(TimeSpan.FromSeconds(2));
-
-                    screenshotData[link] = await Page.ScreenshotAsync(new PageScreenshotOptions { Type = ScreenshotType.Png, FullPage = true });
-                    Logger.Info($"Finished download of {link}");
-
-                    await Page.CloseAsync();
-                }
-
-                CachedNews cachedNewsAlter = new CachedNews()
-                {
-                    NewsUrls = cachedNews.NewsUrls,
-                    ScreenshotData = screenshotData
-                };
-
-                return cachedNewsAlter;
             }
             catch (Exception e)
             {
@@ -258,7 +221,7 @@ namespace STOTool.Generic
             }
         }
 
-        public static async Task<bool> StoreScreenshotDataIntoCache(string url, byte[] data)
+        private static async Task<bool> StoreScreenshotDataIntoCache(string url, byte[] data)
         {
             CachedNews cachedNews = await Cache.GetCachedNewsAsync();
 
@@ -274,85 +237,36 @@ namespace STOTool.Generic
             return true;
         }
         
-        public static bool NullCheck(DateTime? date)
+        public static bool NullCheck(DateTime? date) => date == null;
+        public static bool NullCheck(MemoryStream? memoryStream) => memoryStream == null;
+        public static bool NullCheck(TimeSpan? time) => time == null;
+        public static bool NullCheck(EventInfo? eventInfo) => eventInfo == null;
+        public static bool NullCheck(NewsInfo? newsInfo) => newsInfo == null;
+        public static bool NullCheck(MaintenanceInfo? maintenanceInfo) => maintenanceInfo == null;
+        public static bool NullCheck(List<NewsInfo>? newsInfos) => newsInfos == null;
+        public static bool NullCheck(List<EventInfo>? eventInfos) => eventInfos == null;
+        public static bool NullCheck(byte[] bytes) => bytes == null || bytes.Length == 0;
+        public static bool NullCheck(string str) => string.IsNullOrEmpty(str);
+        public static bool NullCheck(CachedNews cachedNews) => cachedNews == null;
+        public static bool NullCheck(NewsNodes newsNodes)
         {
-            return date == null;
-        }
-        
-        public static bool NullCheck(MemoryStream? memoryStream)
-        {
-            return memoryStream == null;
-        }
-
-        public static bool NullCheck(TimeSpan? time)
-        {
-            return time == null;
-        }
-        
-        public static bool NullCheck(EventInfo? eventInfo)
-        {
-            return eventInfo == null;
-        }
-        
-        public static bool NullCheck(NewsInfo? newsInfo)
-        {
-            return newsInfo == null;
-        }
-        
-        public static bool NullCheck(MaintenanceInfo? maintenanceInfo)
-        {
-            return maintenanceInfo == null;
-        }
-        
-        public static bool NullCheck(List<NewsInfo>? newsInfos)
-        {
-            return newsInfos == null;
-        }
-        
-        public static bool NullCheck(List<EventInfo>? eventInfos)
-        {
-            return eventInfos == null;
-        }
-        
-        public static bool NullCheck(byte[] bytes)
-        {
-            return bytes == null! || bytes.Length == 0;
-        }
-        
-        public static bool NullCheck(string str)
-        {
-            return str == null!;
-        }
-        
-        public static bool NullCheck(CachedNews cachedNews)
-        {
-            return cachedNews == null!;
+            if (newsNodes == null) return true;
+            return string.IsNullOrEmpty(newsNodes.Node0) || string.IsNullOrEmpty(newsNodes.Node1) || string.IsNullOrEmpty(newsNodes.Node2) || string.IsNullOrEmpty(newsNodes.Hash);
         }
 
         public static bool NullCheck(CachedInfo cachedInfo)
         {
-            if (cachedInfo == null)
-            {
-                return true;
-            }
-            else
-            {
-                if (cachedInfo.NewsInfos.Count == 0 && cachedInfo.EventInfos.Count == 0)
-                {
-                    return true;
-                }
-
-                return false;
-            }
+            if (cachedInfo == null) return true;
+            return cachedInfo.NewsInfos.Count == 0 && cachedInfo.EventInfos.Count == 0;
         }
 
         public static string StringTrim(string str, int length)
         {
+            const string ellipsis = "...";
+
             if (str.Length > length)
             {
-                string result = str.Substring(0, length);
-                
-                return result;
+                return str.Substring(0, length) + ellipsis;
             }
             else
             {

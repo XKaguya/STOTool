@@ -35,8 +35,8 @@ namespace STOTool.Generic
 
         public static void StartCacheGuard()
         {
-            Timers[CacheKey] = new Timer(CacheGuardCallback, CacheKey, TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[2] / 2) , TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[0] / 2));
-            Timers[NewsCacheKey] = new Timer(CacheGuardCallback, NewsCacheKey, TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[2] / 2), TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[1] / 2));
+            Timers[CacheKey] = new Timer(CacheGuardCallback, CacheKey, TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[0] / 2) , TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[0] / 2));
+            Timers[NewsCacheKey] = new Timer(CacheGuardCallback, NewsCacheKey, TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[1] / 2), TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[1] / 2));
             Timers[FastCacheKey] = new Timer(CacheGuardCallback, FastCacheKey, TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[2] / 2), TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[2] / 2));  
         }
 
@@ -53,17 +53,29 @@ namespace STOTool.Generic
             }
         }
         
-        private static void CacheGuardCallback(object state)
+        private static async void CacheGuardCallback(object state)
         {
             var key = state as string;
             Logger.Debug($"Refreshing cache {key}.");
 
-            MemoryCache.Remove(key);
-            
-            if (MemoryCache.Get(key) == null)
+            if (key == CacheKey)
             {
-                Logger.Debug($"Cache {key} has been removed due to ensure the callback called.");
+                await GetCachedInfoAsync();
             }
+            else if (key == NewsCacheKey)
+            {
+                await GetCachedNewsAsync();
+            }
+            else if (key == FastCacheKey)
+            {
+                await GetFastCachedMaintenanceInfoAsync();
+            }
+            else
+            {
+                Logger.Critical($"Unexpected key {key}. This shouldn't happen.");
+            }
+
+            Logger.Debug($"Cache {key} has been referenced to ensure the cache callback.");
         }
 
         private static void SetCacheItemWithCallback<T>(string key, T value, TimeSpan expiration, PostEvictionDelegate onExpiration)
@@ -223,7 +235,7 @@ namespace STOTool.Generic
                     cachedNews.ScreenshotData[link] = null;
                 }
 
-                var cachedNewsInternal = await Helper.GetAllScreenshot(cachedNews);
+                var cachedNewsInternal = await Helper.GetAllScreenshots(cachedNews);
 
                 SetCacheItemWithCallback(NewsCacheKey, cachedNewsInternal, NewsCacheExpiration, OnExpired);
 
@@ -235,21 +247,9 @@ namespace STOTool.Generic
             }
         }
 
-        public static void UpdateCache(CachedNews cachedNews)
-        {
-            Logger.Debug("Updating NewsCache.");
-            SetCacheItemWithCallback(NewsCacheKey, cachedNews, NewsCacheExpiration, OnExpired);
-        }
-
         public static void Set<T>(string key, T value)
         {
             SetCacheItemWithCallback(key, value, NewsCacheExpiration, OnExpired);
-        }
-
-        public static bool TryGetValue<T>(string key, out T value)
-        {
-            Logger.Debug($"Trying to get cache item with key {key}.");
-            return MemoryCache.TryGetValue(key, out value);
         }
 
         public static async Task RemoveAll()

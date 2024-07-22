@@ -15,6 +15,8 @@ namespace STOTool.Feature
 {
     public class Calendar
     {
+        private static readonly string GoogleCalendarId = "uhio1bvtudq50n2qhfeo98iduo@group.calendar.google.com";
+        
         public static async Task<List<EventInfo>>? GetRecentEventsAsync()
         {
             try
@@ -44,7 +46,7 @@ namespace STOTool.Feature
                     ApplicationName = "STO Server Checker"
                 });
 
-                EventsResource.ListRequest request = service.Events.List("uhio1bvtudq50n2qhfeo98iduo@group.calendar.google.com");
+                EventsResource.ListRequest request = service.Events.List(GoogleCalendarId);
                 request.TimeMin = DateTime.UtcNow;
                 request.ShowDeleted = false;
                 request.SingleEvents = true;

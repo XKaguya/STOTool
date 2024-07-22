@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -16,7 +16,7 @@ namespace STOTool
     /// </summary>
     public partial class MainWindow
     {
-        private const string Version = "1.1.7";
+        private const string Version = "1.1.8";
         
         public static FontFamily StFontFamily { get; private set; }
         
@@ -51,8 +51,6 @@ namespace STOTool
             try
             {
                 Logger.Info($"Proceeding PostInit phase.");
-                
-                await Helper.InitBrowser();
                 
                 var cacheNewsTask = Cache.GetCachedNewsAsync();
                 var cacheInfoTask = Cache.GetCachedInfoAsync();
@@ -132,6 +130,10 @@ namespace STOTool
 
                 BackgroundImageDown = backgroundImages[0];
                 BackgroundImageUp = backgroundImages[1];
+                
+                DrawNewsImage.InitFonts();
+                
+                await Helper.InitBrowserAsync();
             }
             catch (Exception ex)
             {

@@ -83,10 +83,25 @@ namespace STOTool.Feature
 
                 await HandleWebSocketMessages(webSocket);
             }
-            catch (Exception ex)
+            catch (WebSocketException ex)
             {
                 Logger.Error($"WebSocket error: {ex.Message}\n{ex.StackTrace}");
-                webSocketContext?.WebSocket.CloseAsync(WebSocketCloseStatus.InternalServerError, "Internal Server Error", CancellationToken.None);
+                if (ex.InnerException != null)
+                {
+                    Logger.Error($"Inner Exception: {ex.InnerException.Message}\n{ex.InnerException.StackTrace}");
+                }
+                if (webSocketContext?.WebSocket != null)
+                {
+                    await webSocketContext.WebSocket.CloseAsync(WebSocketCloseStatus.InternalServerError, "Internal Server Error", CancellationToken.None);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Unexpected error: {ex.Message}\n{ex.StackTrace}");
+                if (webSocketContext?.WebSocket != null)
+                {
+                    await webSocketContext.WebSocket.CloseAsync(WebSocketCloseStatus.InternalServerError, "Internal Server Error", CancellationToken.None);
+                }
             }
         }
 
@@ -119,6 +134,14 @@ namespace STOTool.Feature
             catch (WebSocketException ex)
             {
                 Logger.Error($"WebSocket error: {ex.Message}\n{ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                    Logger.Error($"Inner Exception: {ex.InnerException.Message}\n{ex.InnerException.StackTrace}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Unexpected error: {ex.Message}\n{ex.StackTrace}");
             }
         }
         
@@ -230,17 +253,25 @@ namespace STOTool.Feature
                     await webSocket.SendAsync(new ArraySegment<byte>(resultBytes, 0, resultBytes.Length), WebSocketMessageType.Text, true, CancellationToken.None);
 
                     Logger.Debug("Hash has changed. Sent result to client.");
-
                     return;
                 }
 
                 byte[] returnNull = Encoding.UTF8.GetBytes("null");
-                
+
                 await webSocket.SendAsync(new ArraySegment<byte>(returnNull, 0, returnNull.Length), WebSocketMessageType.Text, true, CancellationToken.None);
             }
-            catch (Exception e)
+            catch (WebSocketException ex)
             {
-                Logger.Error(e.Message + e.StackTrace);
+                Logger.Error($"WebSocket error: {ex.Message}\n{ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                    Logger.Error($"Inner Exception: {ex.InnerException.Message}\n{ex.InnerException.StackTrace}");
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Unexpected error: {ex.Message}\n{ex.StackTrace}");
                 throw;
             }
         }
