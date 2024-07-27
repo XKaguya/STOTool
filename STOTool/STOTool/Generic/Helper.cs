@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,29 +14,13 @@ namespace STOTool.Generic
 {
     public static class Helper
     {
-        private static readonly object LockObject = new ();
+        private static readonly object LockObject = new();
         private static HttpClient? _httpClient;
-        private static readonly Dictionary<string, byte[]> ImageCache = new ();
-        
+        private static readonly Dictionary<string, byte[]> ImageCache = new();
+
         private static IBrowser? BrowserInternal { get; set; }
-
-        public static IBrowser Browser
-        {
-            get
-            {
-                if (BrowserInternal == null)
-                {
-                    InitBrowser();
-                }
-
-                return BrowserInternal;
-            }
-        }
-
-        private static IPage? Page { get; set; }
-        
-        private static readonly Lazy<Task<IPlaywright>> LazyPlaywright = new (() => Playwright.CreateAsync());
-        private static readonly Lazy<Task<IBrowser>> LazyBrowser = new (async () =>
+        private static readonly Lazy<Task<IPlaywright>> LazyPlaywright = new(() => Playwright.CreateAsync());
+        private static readonly Lazy<Task<IBrowser>> LazyBrowser = new(async () =>
         {
             var playwright = await LazyPlaywright.Value;
             return await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
@@ -43,7 +28,7 @@ namespace STOTool.Generic
                 Headless = false
             });
         });
-        
+
         private static Task<IBrowser> GetBrowserAsync() => LazyBrowser.Value;
         private static IBrowser GetBrowser() => LazyBrowser.Value.Result;
 
@@ -57,7 +42,7 @@ namespace STOTool.Generic
 
             return false;
         }
-        
+
         private static bool InitBrowser()
         {
             if (BrowserInternal == null)
@@ -79,7 +64,7 @@ namespace STOTool.Generic
                     {
                         _httpClient = new HttpClient();
                     }
-                    
+
                     return _httpClient;
                 }
             }
@@ -95,11 +80,11 @@ namespace STOTool.Generic
                 }
 
                 var response = await HttpClient.GetAsync(imageUrl);
-                    
+
                 if (response.IsSuccessStatusCode)
                 {
                     var imageBytes = await response.Content.ReadAsByteArrayAsync();
-                    
+
                     ImageCache[imageUrl] = imageBytes;
 
                     return imageBytes;
@@ -116,7 +101,7 @@ namespace STOTool.Generic
                 return null;
             }
         }
-        
+
         public static async Task<Image<Rgba32>> LoadImageAsync(Stream stream)
         {
             try
@@ -133,93 +118,124 @@ namespace STOTool.Generic
             }
         }
 
+        public static async Task<IPage> CreateNewPageAsync()
+        {
+            var browser = await GetBrowserAsync();
+            return await browser.NewPageAsync();
+        }
+
         public static async Task<byte[]> GetWebsiteScreenshot(string url)
         {
             byte[] returnNull = Encoding.UTF8.GetBytes("null");
-            
+
+            IPage? page = null;
             try
             {
-                Page = await Browser.NewPageAsync();
+                page = await CreateNewPageAsync();
+                await page.GotoAsync(url);
 
-                await Page.GotoAsync(url, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+                await page.EvaluateAsync("document.getElementById('onetrust-button-group') !== null");
+                
+                await Task.Delay(TimeSpan.FromSeconds(5));
 
                 const string buttonSelector = "#onetrust-accept-btn-handler";
-                var element = await Page.QuerySelectorAsync(buttonSelector);
+                var element = await page.QuerySelectorAsync(buttonSelector);
 
                 if (element != null)
                 {
-                    await Page.ClickAsync(buttonSelector);
+                    await page.ClickAsync(buttonSelector);
                 }
 
-                await Task.Delay(TimeSpan.FromSeconds(2));
+                await Task.Delay(TimeSpan.FromSeconds(5));
 
-                var screenshotData = await Page.ScreenshotAsync(new PageScreenshotOptions { Type = ScreenshotType.Png, FullPage = true });
-
-                await Page.CloseAsync();
+                var screenshotData = await page.ScreenshotAsync(new PageScreenshotOptions { Type = ScreenshotType.Png, FullPage = true });
 
                 await StoreScreenshotDataIntoCache(url, screenshotData);
-                
+
                 return screenshotData;
             }
             catch (Exception e)
             {
                 Logger.Error(e.Message + e.StackTrace);
-                await Page.CloseAsync();
                 return returnNull;
+            }
+            finally
+            {
+                if (page != null && !page.IsClosed)
+                {
+                    await page.CloseAsync();
+                }
             }
         }
 
         public static async Task<CachedNews?> GetAllScreenshots(CachedNews cachedNews)
         {
-            try
+            var screenshotData = new Dictionary<string, byte[]>();
+
+            if (NullCheck(cachedNews))
             {
-                var screenshotData = new Dictionary<string, byte[]>();
+                return null;
+            }
 
-                if (NullCheck(cachedNews))
+            var tasks = cachedNews.NewsUrls!.Select(async link =>
+            {
+                IPage? page = null;
+                try
                 {
-                    return null;
-                }
+                    page = await CreateNewPageAsync();
+                    await page.GotoAsync(link);
+                    
+                    await page.EvaluateAsync("document.getElementById('onetrust-button-group') !== null");
 
-                foreach (var link in cachedNews.NewsUrls!)
-                {
-                    Page = await Browser.NewPageAsync();
-
-                    await Page.GotoAsync(link, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+                    await Task.Delay(TimeSpan.FromSeconds(5));
 
                     const string buttonSelector = "#onetrust-accept-btn-handler";
-                    var element = await Page.QuerySelectorAsync(buttonSelector);
+                    var element = await page.QuerySelectorAsync(buttonSelector);
 
                     if (element != null)
                     {
-                        await Page.ClickAsync(buttonSelector);
+                        await page.ClickAsync(buttonSelector);
                     }
 
-                    await Task.Delay(TimeSpan.FromSeconds(2));
+                    await Task.Delay(TimeSpan.FromSeconds(5));
 
-                    screenshotData[link] = await Page.ScreenshotAsync(new PageScreenshotOptions
-                    { 
-                        Type = ScreenshotType.Png, 
-                        FullPage = true 
+                    var screenshot = await page.ScreenshotAsync(new PageScreenshotOptions
+                    {
+                        Type = ScreenshotType.Png,
+                        FullPage = true
                     });
 
                     Logger.Info($"Finished download of {link}");
-
-                    await Page.CloseAsync();
+                    return new { link, screenshot };
                 }
-
-                return new CachedNews
+                catch (Exception e)
                 {
-                    NewsUrls = cachedNews.NewsUrls,
-                    ScreenshotData = screenshotData
-                };
-            }
-            catch (Exception e)
+                    Logger.Error(e.Message + e.StackTrace);
+                    byte[] returnNull = Encoding.UTF8.GetBytes("null");
+                    return new { link, screenshot = returnNull };
+                }
+                finally
+                {
+                    if (page != null && !page.IsClosed)
+                    {
+                        await page.CloseAsync();
+                    }
+                }
+            }).ToList();
+
+            var results = await Task.WhenAll(tasks);
+
+            foreach (var result in results)
             {
-                Logger.Error(e.Message + e.StackTrace);
-                await Page.CloseAsync();
-                return null;
+                screenshotData[result.link] = result.screenshot;
             }
-        }
+
+            return new CachedNews
+            {
+                NewsUrls = cachedNews.NewsUrls,
+                ScreenshotData = screenshotData
+            };
+        }   
 
         private static async Task<bool> StoreScreenshotDataIntoCache(string url, byte[] data)
         {
@@ -231,12 +247,12 @@ namespace STOTool.Generic
             }
 
             cachedNews.ScreenshotData![url] = data;
-            
+
             Cache.Set(Cache.NewsCacheKey, cachedNews);
 
             return true;
         }
-        
+
         public static bool NullCheck(DateTime? date) => date == null;
         public static bool NullCheck(MemoryStream? memoryStream) => memoryStream == null;
         public static bool NullCheck(TimeSpan? time) => time == null;

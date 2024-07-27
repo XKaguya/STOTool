@@ -1,13 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
-using HtmlAgilityPack;
-using iNKORE.UI.WPF.Modern.Controls;
-using Microsoft.Playwright;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using STOTool.Class;
 using STOTool.Generic;
 
@@ -15,53 +15,82 @@ namespace STOTool.Feature
 {
     public class AutoNews
     {
-        private const string Url = "https://www.playstartrekonline.com/en/news#pc";
+        private const string Url = "https://api.arcgames.com/v1.0/games/sto/news";
         private const string NewsNodesFile = "NewsNodes.json";
-        private const string NewsXPath = "//a[@class='news-page__news-post']";
 
-        private static async Task<HtmlNodeCollection> GetContentAsync()
+        private static async Task<string> GetContentAsync()
         {
-            var page = await Helper.Browser.NewPageAsync();
-            
-            try
+            var builder = new UriBuilder(Url);
+            var query = HttpUtility.ParseQueryString(string.Empty);
+            query.Add("field[]", "images.img_microsite_thumbnail");
+            query.Add("field[]", "platforms");
+            query.Add("field[]", "updated");
+            query.Add("limit", "4");
+            query.Add("platform", "pc");
+
+            builder.Query = query.ToString();
+
+            HttpResponseMessage response = await Helper.HttpClient.GetAsync(builder.ToString());
+            if (response.IsSuccessStatusCode)
             {
-                await page.GotoAsync(Url, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
-
-                string content = await page.ContentAsync();
-                await page.CloseAsync();
-
-                HtmlDocument htmlDoc = new HtmlDocument();
-                htmlDoc.LoadHtml(content);
-
-                HtmlNodeCollection newsNodes = htmlDoc.DocumentNode.SelectNodes(NewsXPath);
-
-                return newsNodes;
+                var result = await response.Content.ReadAsStringAsync();
+                        
+                return result;
             }
-            catch (Exception e)
+            else
             {
-                Logger.Error(e.Message + e.StackTrace);
-                await page.CloseAsync();
-                return null;
+                return "null";
             }
         }
-
-        private static string ExtractTitle(HtmlNode htmlNode)
+        
+        private static List<NewsInfo> ParseJsonContent(string content)
         {
-            string title = HttpUtility.HtmlDecode(htmlNode.SelectSingleNode(".//h3[contains(@class, 'news-page__news-post-title')]")?.InnerText.Trim());
-            return title;
+            if (string.IsNullOrEmpty(content))
+            {
+                return null;
+            }
+
+            JObject json = JObject.Parse(content);
+            JArray newsArray = (JArray)json["news"];
+        
+            if (newsArray == null)
+            {
+                return null;
+            }
+
+            List<NewsInfo> newsList = new List<NewsInfo>();
+            foreach (JObject newsItem in newsArray)
+            {
+                string title = newsItem["title"]?.ToString();
+                string imageUrl = newsItem["images"]?["img_microsite_thumbnail"]?["url"]?.ToString();
+                string newsLink = $"https://www.arcgames.com/en/games/star-trek-online/news/detail/{newsItem["id"]}";
+
+                if (!string.IsNullOrEmpty(title) && !string.IsNullOrEmpty(imageUrl) && !string.IsNullOrEmpty(newsLink))
+                {
+                    newsList.Add(new NewsInfo
+                    {
+                        Title = title,
+                        ImageUrl = imageUrl,
+                        NewsLink = newsLink
+                    });
+                }
+            }
+
+            return newsList;
         }
         
         private static async Task<NewsNodes> FetchPageContentAsync()
         {
-            HtmlNodeCollection newsNodes = await GetContentAsync();
+            string content = await GetContentAsync();
+            List<NewsInfo> newsInfos = ParseJsonContent(content);
 
             NewsNodes result = new NewsNodes();
-            if (newsNodes != null && newsNodes.Count >= 4)
+            if (newsInfos != null && newsInfos.Count >= 4)
             {
-                result.Node0 = ExtractTitle(newsNodes[0]);
-                result.Node1 = ExtractTitle(newsNodes[1]);
-                result.Node2 = ExtractTitle(newsNodes[2]);
-                result.Node3 = ExtractTitle(newsNodes[3]);
+                result.Node0 = newsInfos[0].Title;
+                result.Node1 = newsInfos[1].Title;
+                result.Node2 = newsInfos[2].Title;
+                result.Node3 = newsInfos[3].Title;
                 result.Hash = GenerateHash(result);
             }
             
@@ -78,6 +107,12 @@ namespace STOTool.Feature
 
         private static async Task StoreIntoFile(NewsNodes newsData)
         {
+            if (Helper.NullCheck(newsData))
+            {
+                Logger.Error("Network issue detected. Write into file canceled.");
+                return;
+            }
+            
             string json = JsonConvert.SerializeObject(newsData, Formatting.Indented);
             await File.WriteAllTextAsync(NewsNodesFile, json);
         }
@@ -104,23 +139,33 @@ namespace STOTool.Feature
 
             if (previousData != null && currentData.Hash == previousData.Hash)
             {
-                Logger.Info("Data has not changed.");
+                Logger.Info($"Hash has not changed. Saved: {previousData.Hash} Current: {currentData.Hash}");
                 return "null";
             }
-            else
+            
+            if (previousData != null && currentData.Hash != previousData.Hash)
             {
                 await Cache.RemoveAll();
                 
-                Logger.Info("Data has changed.");
-                var result = await GetNewsImage.CallScreenshot(0);
+                Logger.Info($"Hash has changed. Saved: {previousData.Hash} Current: {currentData.Hash}");
+                
+                var result = await GetNewsImage.CallScreenshot(0, true);
                 
                 return result;
             }
+
+            return "null";
         }
 
         public static async Task<string> HasHashChanged()
         {
             var currentData = await FetchPageContentAsync();
+
+            if (Helper.NullCheck(currentData))
+            {
+                return "null";
+            }
+            
             var result = await CompareHash(currentData);
 
             if (result != "null")

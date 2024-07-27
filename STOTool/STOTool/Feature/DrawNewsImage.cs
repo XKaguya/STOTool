@@ -19,9 +19,11 @@ namespace STOTool.Feature
 {
     public class DrawNewsImage
     {
+        public static string Tips { get; set; } = "";
+        
         private static Dictionary<int, Font> Fonts { get; set; } = new();
         
-        private const int EventInfoOffsetX = 250;
+        private const int EventInfoOffsetX = 280;
         private const int EventInfoStartYOffset = -400;
         private const int EventInfoStartDateYOffset = -350;
         private const int EventInfoEndDateYOffset = -300;
@@ -31,6 +33,10 @@ namespace STOTool.Feature
         private const int NewsImageHeightOffset = 230;
         private const int NewsImageRowHeight = 293;
         private const int MaxNewsCount = 9;
+        private const int TipsStartX = 321;
+        private const int TipsStartY = 367;
+        private const int TipsEndX = 1573;
+        private const int TipsEndY = 439;
 
         public static void InitFonts()
         {
@@ -54,6 +60,19 @@ namespace STOTool.Feature
 
                 return null;
             }
+        }
+        
+        private static void DrawTips(Image<Rgba32> backgroundImage, string tips)
+        {
+            var textSize = TextMeasurer.MeasureSize(tips, new TextOptions(Fonts[50]));
+            
+            var rect = new RectangleF(TipsStartX, TipsStartY, TipsEndX - TipsStartX, TipsEndY - TipsStartY);
+            
+            var textPosition = new PointF(rect.X + (rect.Width - textSize.Width) / 2, rect.Y + (rect.Height - textSize.Height) / 2);
+            
+            backgroundImage.Mutate(ctx => ctx.DrawText(new DrawingOptions(), tips, Fonts[50], Color.White, textPosition));
+
+            Tips = "";
         }
 
         private static void DrawEventInfos(Image<Rgba32> backgroundImage, List<EventInfo> eventInfos, int startX, int startY)
@@ -108,6 +127,19 @@ namespace STOTool.Feature
         private static string DrawOnBackground(Image<Rgba32> backgroundImage, List<Image<Rgba32>> newsImages, List<string> newsTitles, MaintenanceInfo maintenanceInfo, List<EventInfo> eventInfos, int startX, int startY)
         {
             eventInfos = eventInfos.Skip(eventInfos.Count - 3).Take(3).ToList();
+
+            if (string.IsNullOrEmpty(Tips))
+            {
+                string formattedTime = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss");
+                if (Cache.CacheSetTimes.TryGetValue(Cache.CacheKey, out DateTime setTime))
+                {
+                    formattedTime += $" Cache last refresh at {setTime.ToString("HH:mm:ss")}";
+                }
+                
+                Tips = formattedTime;
+            }
+            
+            DrawTips(backgroundImage, Tips);
             
             DrawEventInfos(backgroundImage, eventInfos, startX, startY);
             
@@ -161,9 +193,9 @@ namespace STOTool.Feature
 
             switch (maintenanceInfo.ShardStatus)
             {
-                case MaintenanceTimeType.Maintenance:
                 case MaintenanceTimeType.WaitingForMaintenance:
                 case MaintenanceTimeType.None:
+                case MaintenanceTimeType.Null:
                 case MaintenanceTimeType.MaintenanceEnded:
                     backgroundImage = MainWindow.BackgroundImageUp;
                     break;
