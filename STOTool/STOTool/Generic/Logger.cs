@@ -88,7 +88,7 @@ namespace STOTool.Generic
         {
             if (_currentLogLevel >= level)
             {
-                string logMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{callerName}] [{level}]: {message}";
+                string logMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{level}] [{callerName}]: {message}";
                 WriteLogToFile(logMessage);
                 LogAddLine(logMessage, GetColorByLogLevel(level));
                 if (level == LogLevel.Critical)

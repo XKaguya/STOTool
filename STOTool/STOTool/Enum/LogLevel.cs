@@ -6,8 +6,8 @@
         Fatal,
         Warning,
         Error,
-        Trace,
         Info,
         Debug,
+        Trace,
     }
 }

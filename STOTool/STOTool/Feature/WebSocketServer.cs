@@ -267,12 +267,10 @@ namespace STOTool.Feature
                 {
                     Logger.Error($"Inner Exception: {ex.InnerException.Message}\n{ex.InnerException.StackTrace}");
                 }
-                throw;
             }
             catch (Exception ex)
             {
                 Logger.Error($"Unexpected error: {ex.Message}\n{ex.StackTrace}");
-                throw;
             }
         }
         
@@ -295,7 +293,6 @@ namespace STOTool.Feature
             catch (Exception e)
             {
                 Logger.Error($"Error in ClientAskForNewsInIndex: {e.Message}\n{e.StackTrace}");
-                throw;
             }
         }
         
@@ -313,7 +310,6 @@ namespace STOTool.Feature
             catch (Exception e)
             {
                 Logger.Error(e.Message + e.StackTrace);
-                throw;
             }
         }
     }

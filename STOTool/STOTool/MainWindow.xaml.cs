@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -16,7 +16,7 @@ namespace STOTool
     /// </summary>
     public partial class MainWindow
     {
-        private const string Version = "1.1.8";
+        private const string Version = "1.2.0";
         
         public static FontFamily StFontFamily { get; private set; }
         
@@ -51,11 +51,11 @@ namespace STOTool
             try
             {
                 Logger.Info($"Proceeding PostInit phase.");
-                
+
                 var cacheNewsTask = Cache.GetCachedNewsAsync();
                 var cacheInfoTask = Cache.GetCachedInfoAsync();
                 var cacheMaintenanceTask = Cache.GetFastCachedMaintenanceInfoAsync();
-
+                    
                 await Task.WhenAll(cacheNewsTask, cacheInfoTask, cacheMaintenanceTask);
                 
                 Logger.Info($"PostInit has completed.");

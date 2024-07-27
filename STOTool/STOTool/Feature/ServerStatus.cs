@@ -18,13 +18,19 @@ namespace STOTool.Feature
             {
                 string? message = Api.IsDebugMode() ? Api.GetDebugMessage() : await GetMaintenanceTimeFromLauncherAsync();
                 
-                if (message == null)
+                if (string.IsNullOrEmpty(message))
                 {
-                    Logger.Debug("There's no message in launcher page.");
-                    return new MaintenanceInfo { ShardStatus = MaintenanceTimeType.None };
+                    Logger.Trace("There's no message in launcher page.");
+                    return new MaintenanceInfo { ShardStatus = MaintenanceTimeType.Null };
                 }
                 
                 ShardStatus serverStatus = ExtractServerStatus(message);
+
+                if (!MessageExist(message))
+                {
+                    Logger.Trace("There's no message.");
+                    return new MaintenanceInfo { ShardStatus = MaintenanceTimeType.Null }; 
+                }
 
                 var (date, startTime, endTime) = await ExtractMaintenanceTime(message);
                 var (startEventTime, endEventTime) = TimeUntilMaintenance(date, startTime, endTime);
@@ -32,13 +38,36 @@ namespace STOTool.Feature
                 var maintenanceType = GetMaintenanceTimeType(currentTime, startEventTime, endEventTime, serverStatus);
 
                 var maintenanceInfo = new MaintenanceInfo { ShardStatus = maintenanceType };
-                if (startEventTime.HasValue && endEventTime.HasValue)
+
+                if (startEventTime.HasValue && endEventTime.HasValue && maintenanceType != MaintenanceTimeType.Maintenance && maintenanceType != MaintenanceTimeType.SpecialMaintenance && maintenanceType != MaintenanceTimeType.Null)
                 {
                     var timeRemaining = startEventTime.Value.Subtract(currentTime);
+                    if (timeRemaining < TimeSpan.Zero)
+                    {
+                        timeRemaining = TimeSpan.Zero;
+                    }
                     maintenanceInfo.Days = timeRemaining.Days;
                     maintenanceInfo.Hours = timeRemaining.Hours;
                     maintenanceInfo.Minutes = timeRemaining.Minutes;
                     maintenanceInfo.Seconds = timeRemaining.Seconds;
+                }
+
+                if (startEventTime.HasValue && endEventTime.HasValue && maintenanceType != MaintenanceTimeType.MaintenanceEnded && maintenanceType != MaintenanceTimeType.Null && maintenanceType != MaintenanceTimeType.None)
+                {
+                    var timeRemaining = endEventTime.Value.Subtract(currentTime);
+                    if (timeRemaining < TimeSpan.Zero)
+                    {
+                        timeRemaining = TimeSpan.Zero;
+                    }
+                    maintenanceInfo.Days = timeRemaining.Days;
+                    maintenanceInfo.Hours = timeRemaining.Hours;
+                    maintenanceInfo.Minutes = timeRemaining.Minutes;
+                    maintenanceInfo.Seconds = timeRemaining.Seconds;
+                }
+
+                if (Api.IsDebugMode())
+                {
+                    Logger.Trace(maintenanceInfo.ToString());
                 }
 
                 return maintenanceInfo;
@@ -93,6 +122,32 @@ namespace STOTool.Feature
                 return ShardStatus.None;
             }
         }
+        
+        private static bool MessageExist(string? message)
+        {
+            if (string.IsNullOrEmpty(message))
+            {
+                return false;
+            }
+
+            try
+            {
+                var json = JObject.Parse(message.Trim('\"').Replace("\\\"", "\""));
+                var msg = json["message"]?.ToString();
+
+                if (!string.IsNullOrEmpty(msg))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+            catch (JsonReaderException ex)
+            {
+                Logger.Error($"Failed to extract message: {ex.Message}");
+                return false;
+            }
+        }
 
         private static async Task<string?> GetMaintenanceTimeFromLauncherAsync()
         {
@@ -101,55 +156,59 @@ namespace STOTool.Feature
             return response.IsSuccessStatusCode ? await response.Content.ReadAsStringAsync() : null;
         }
 
-        private static (DateTime?, DateTime?) TimeUntilMaintenance(DateTime? date, TimeSpan? startTime, TimeSpan? endTime)
+        private static (DateTime?, DateTime?) TimeUntilMaintenance(DateTime? date, DateTime? startTime, DateTime? endTime)
         {
             if (date == null || startTime == null || endTime == null)
                 return (null, null);
 
-            DateTime startDateTime = date.Value.Date.Add(startTime.Value);
-            DateTime endDateTime = date.Value.Date.Add(endTime.Value);
+            DateTime startDateTime = date.Value.Date.Add(startTime.Value.TimeOfDay);
+            DateTime endDateTime = date.Value.Date.Add(endTime.Value.TimeOfDay);
             if (endTime < startTime)
                 endDateTime = endDateTime.AddDays(1);
 
             return (startDateTime, endDateTime);
         }
 
-        private static async Task<(DateTime?, TimeSpan?, TimeSpan?)> ExtractMaintenanceTime(string message)
+        private static async Task<(DateTime?, DateTime?, DateTime?)> ExtractMaintenanceTime(string message)
         {
             return await Task.Run(() =>
             {
                 DateTime? date = TryParseDate(message, @"(?i)(January|February|March|April|May|June|July|August|September|October|November|December) \d+");
-                (TimeSpan? startTime, TimeSpan? endTime) = TryParseTimeSpan(message, @"(\d+-\d+:\d+)");
-                (TimeSpan? utcStartTime, TimeSpan? utcEndTime) = TryParseTimeSpan(message, @"(\d+:\d+-\d+:\d+ UTC)");
+                (DateTime? startTime, DateTime? endTime) = TryParseDateTime(message, @"(\d{1,2}:\d{2})-(\d{1,2}:\d{2})", date!.Value);
+                (DateTime? utcStartTime, DateTime? utcEndTime) = TryParseDateTime(message, @"(\d{1,2}:\d{2})-(\d{1,2}:\d{2} UTC)", date!.Value);
+                
+                Logger.Trace($"PT {startTime.ToString()} {endTime.ToString()}");
+                Logger.Trace($"UTC {utcStartTime.ToString()} {utcEndTime.ToString()}");
 
-                TimeSpan? finalStartTime = utcStartTime;
-                TimeSpan? finalEndTime = utcEndTime;
+                DateTime? finalStartTime = utcStartTime;
+                DateTime? finalEndTime = utcEndTime;
                 if (startTime != null && endTime != null && utcStartTime != null && utcEndTime != null && !CompareTimeRanges(startTime, endTime, utcStartTime, utcEndTime))
                 {
-                    Logger.Debug($"The time range isn't same. It should be Kael's problem.");
+                    Logger.Debug("The time range isn't the same. It should be Kael's problem.");
                 }
                 (finalStartTime, finalEndTime) = ConvertToLocalTime(finalStartTime, finalEndTime);
                 return (date, finalStartTime, finalEndTime);
             });
         }
 
-        private static bool CompareTimeRanges(TimeSpan? timeSpan0, TimeSpan? timeSpan1, TimeSpan? timeSpan2, TimeSpan? timeSpan3)
+        private static bool CompareTimeRanges(DateTime? timeSpan0, DateTime? timeSpan1, DateTime? timeSpan2, DateTime? timeSpan3)
         {
-            DateTime utcTimeSpan0 = DateTime.UtcNow.Date.Add(timeSpan0 ?? TimeSpan.Zero);
-            DateTime utcTimeSpan1 = DateTime.UtcNow.Date.Add(timeSpan1 ?? TimeSpan.Zero);
-            return utcTimeSpan0 < utcTimeSpan1;
+            return timeSpan0 < timeSpan1 && timeSpan2 < timeSpan3;
         }
 
-        private static (TimeSpan?, TimeSpan?) ConvertToLocalTime(TimeSpan? timeSpan0, TimeSpan? timeSpan1)
+        private static (DateTime?, DateTime?) ConvertToLocalTime(DateTime? utcTime0, DateTime? utcTime1)
         {
+            if (utcTime0 == null || utcTime1 == null)
+                return (null, null);
+
             TimeZoneInfo localTimeZone = TimeZoneInfo.Local;
-            DateTime utcDateTime0 = DateTime.SpecifyKind(DateTime.UtcNow.Date.Add(timeSpan0 ?? TimeSpan.Zero), DateTimeKind.Utc);
-            DateTime utcDateTime1 = DateTime.SpecifyKind(DateTime.UtcNow.Date.Add(timeSpan1 ?? TimeSpan.Zero), DateTimeKind.Utc);
+            DateTime localDateTime0 = TimeZoneInfo.ConvertTimeFromUtc(utcTime0.Value, localTimeZone);
+            DateTime localDateTime1 = TimeZoneInfo.ConvertTimeFromUtc(utcTime1.Value, localTimeZone);
 
-            DateTime localDateTime0 = TimeZoneInfo.ConvertTimeFromUtc(utcDateTime0, localTimeZone);
-            DateTime localDateTime1 = TimeZoneInfo.ConvertTimeFromUtc(utcDateTime1, localTimeZone);
+            Logger.Trace(localDateTime0.ToString());
+            Logger.Trace(localDateTime1.ToString());
 
-            return (localDateTime0.TimeOfDay, localDateTime1.TimeOfDay);
+            return (localDateTime0, localDateTime1);
         }
 
         private static DateTime? TryParseDate(string input, string pattern)
@@ -158,16 +217,43 @@ namespace STOTool.Feature
             return match.Success && DateTime.TryParse(match.Value, out DateTime temp) ? temp : null;
         }
 
-        private static (TimeSpan?, TimeSpan?) TryParseTimeSpan(string input, string pattern)
+        private static (DateTime?, DateTime?) TryParseDateTime(string input, string pattern, DateTime baseDate)
         {
             Match match = Regex.Match(input, pattern);
             if (match.Success)
             {
+                Logger.Trace($"Regex Match Successful: {match.Value}");
                 string[] times = match.Value.Split('-');
-                return (TimeSpan.TryParse(times[0].Trim(), out TimeSpan start) ? start : (TimeSpan?)null,
-                        TimeSpan.TryParse(times[1].Trim(), out TimeSpan end) ? end : (TimeSpan?)null);
+        
+                if (times.Length != 2)
+                {
+                    Logger.Error($"Unexpected time format: {match.Value}");
+                    return (null, null);
+                }
+        
+                string startTimeStr = times[0].Trim();
+                string endTimeStr = times[1].Trim();
+                
+                endTimeStr = endTimeStr.Split(' ')[0];
+        
+                Logger.Trace($"Start Time String: {startTimeStr}, End Time String: {endTimeStr}");
+        
+                if (TimeSpan.TryParse(startTimeStr, out TimeSpan start) && TimeSpan.TryParse(endTimeStr, out TimeSpan end))
+                {
+                    Logger.Trace($"Parsed Start Time: {start}, Parsed End Time: {end}");
+                    return (baseDate.Add(start), baseDate.Add(end));
+                }
+                else
+                {
+                    Logger.Error($"Failed to parse times: Start Time: {startTimeStr}, End Time: {endTimeStr}");
+                }
             }
+            else
+            {
+                Logger.Trace("Regex Match Failed");
+            }
+    
             return (null, null);
         }
-    } 
+    }
 }

@@ -7,5 +7,6 @@
         MaintenanceEnded,
         SpecialMaintenance,
         None,
+        Null,
     }
 }

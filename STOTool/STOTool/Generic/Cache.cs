@@ -24,7 +24,7 @@ namespace STOTool.Generic
         private static readonly TimeSpan NewsCacheExpiration = TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[1]);
         private static readonly TimeSpan FastCacheExpiration = TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[2]);
 
-        private static readonly Dictionary<string, DateTime> CacheSetTimes = new();
+        public static readonly Dictionary<string, DateTime> CacheSetTimes = new();
         
         private static readonly Dictionary<string, Timer> Timers = new();
 
@@ -35,9 +35,9 @@ namespace STOTool.Generic
 
         public static void StartCacheGuard()
         {
-            Timers[CacheKey] = new Timer(CacheGuardCallback, CacheKey, TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[0] / 2) , TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[0] / 2));
-            Timers[NewsCacheKey] = new Timer(CacheGuardCallback, NewsCacheKey, TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[1] / 2), TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[1] / 2));
-            Timers[FastCacheKey] = new Timer(CacheGuardCallback, FastCacheKey, TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[2] / 2), TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[2] / 2));  
+            Timers[CacheKey] = new Timer(CacheGuardCallback, CacheKey, TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[0]) , TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[0]));
+            Timers[NewsCacheKey] = new Timer(CacheGuardCallback, NewsCacheKey, TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[1]), TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[1]));
+            Timers[FastCacheKey] = new Timer(CacheGuardCallback, FastCacheKey, TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[2]), TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[2]));  
         }
 
         public static void CancelCacheGuard()
@@ -53,29 +53,24 @@ namespace STOTool.Generic
             }
         }
         
-        private static async void CacheGuardCallback(object state)
+        private static void CacheGuardCallback(object state)
         {
             var key = state as string;
             Logger.Debug($"Refreshing cache {key}.");
 
-            if (key == CacheKey)
+            try
             {
-                await GetCachedInfoAsync();
+                if (MemoryCache.TryGetValue(key, out var value))
+                {
+                    OnExpired(key, value, EvictionReason.Expired, null);
+                }
             }
-            else if (key == NewsCacheKey)
+            catch (Exception e)
             {
-                await GetCachedNewsAsync();
-            }
-            else if (key == FastCacheKey)
-            {
-                await GetFastCachedMaintenanceInfoAsync();
-            }
-            else
-            {
-                Logger.Critical($"Unexpected key {key}. This shouldn't happen.");
+                Logger.Error($"Error in CacheGuardCallback: {e.Message} {e.StackTrace}");
             }
 
-            Logger.Debug($"Cache {key} has been referenced to ensure the cache callback.");
+            Logger.Debug($"Cache {key} has been force call the callback to ensure the cache callback was called.");
         }
 
         private static void SetCacheItemWithCallback<T>(string key, T value, TimeSpan expiration, PostEvictionDelegate onExpiration)

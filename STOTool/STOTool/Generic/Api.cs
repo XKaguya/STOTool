@@ -123,6 +123,13 @@ namespace STOTool.Generic
             try
             {
                 SetProgramLevel(System.Enum.Parse<ProgramLevel>(GlobalVariables.ProgramLevel));
+                
+                if (System.Enum.Parse<ProgramLevel>(GlobalVariables.ProgramLevel) == ProgramLevel.Debug)
+                {
+                    Logger.SetLogLevel(LogLevel.Trace);
+                    return;
+                }
+                
                 Logger.SetLogLevel(System.Enum.Parse<LogLevel>(GlobalVariables.LogLevel));
             }
             catch (Exception e)

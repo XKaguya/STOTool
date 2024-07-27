@@ -1,12 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web;
-using HtmlAgilityPack;
-using Microsoft.Playwright;
+using Newtonsoft.Json.Linq;
 using STOTool.Class;
 using STOTool.Generic;
 
@@ -14,20 +11,21 @@ namespace STOTool.Feature
 {
     public class NewsProcessor
     {
-        private const string Url = "https://www.playstartrekonline.com/en/news#pc";
-        private const string BaseUrl = "https://www.playstartrekonline.com";
-        private const string NewsXPath = "//a[@class='news-page__news-post']";
+        private const string Url = "https://api.arcgames.com/v1.0/games/sto/news";
 
         public static async Task<List<NewsInfo>> GetNews()
         {
             try
             {
-#if DEBUG
-                string content = File.ReadAllText("debug.txt");
-#else
                 var content = await FetchPageContentAsync();
-#endif
-                return ParseHtmlContent(content);
+                var result = ParseJsonContent(content);
+
+                if (Helper.NullCheck(result))
+                {
+                    return new List<NewsInfo>();
+                }
+
+                return result;
             }
             catch (HttpRequestException e)
             {
@@ -38,75 +36,89 @@ namespace STOTool.Feature
 
         private static async Task<string> FetchPageContentAsync()
         {
-            var page = await Helper.Browser.NewPageAsync();
-            
-            try
-            {
-                await page.GotoAsync(Url, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+            const int maxRetries = 3;
+            int retryCount = 0;
 
-                async Task ClickViewMoreAsync()
+            while (retryCount < maxRetries)
+            {
+                try
                 {
-                    await page.EvaluateAsync(
-                        "document.querySelector('span.news-page__view-more[role=\"button\"]').click();");
-                    await page.WaitForTimeoutAsync(500);
+                    var builder = new UriBuilder(Url);
+                    var query = HttpUtility.ParseQueryString(string.Empty);
+                    query.Add("field[]", "images.img_microsite_thumbnail");
+                    query.Add("field[]", "platforms");
+                    query.Add("field[]", "updated");
+                    query.Add("limit", "9");
+                    query.Add("platform", "pc");
+
+                    builder.Query = query.ToString();
+
+                    HttpResponseMessage response = await Helper.HttpClient.GetAsync(builder.ToString());
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var result = await response.Content.ReadAsStringAsync();
+
+                        Logger.Trace(result);
+                        
+                        return result;
+                    }
+                    else
+                    {
+                        return "null";
+                    }
+                }
+                catch (TimeoutException ex)
+                {
+                    Logger.Error($"Timeout Exception: {ex.Message}");
+                    DrawNewsImage.Tips = "Official website might down. This is Cryptic's issue.";
+                }
+                catch (Exception e)
+                {
+                    Logger.Error($"General Exception: {e.Message} {e.StackTrace}");
                 }
 
-                await ClickViewMoreAsync();
-                await ClickViewMoreAsync();
-
-                string content = await page.ContentAsync();
-                await page.CloseAsync();
-
-                return content;
+                retryCount++;
+                if (retryCount < maxRetries)
+                {
+                    Logger.Info("Retrying...");
+                    await Task.Delay(2000);
+                }
             }
-            catch (Exception e)
-            {
-                Logger.Error(e.Message + e.StackTrace);
-                await page.CloseAsync();
-                return null;
-            }
+
+            Logger.Error("Failed to fetch page content after maximum retries.");
+            return "null";
         }
 
-        private static List<NewsInfo> ParseHtmlContent(string content)
+        private static List<NewsInfo> ParseJsonContent(string content)
         {
-            HtmlDocument htmlDoc = new HtmlDocument();
-            htmlDoc.LoadHtml(content);
+            if (string.IsNullOrEmpty(content))
+            {
+                return null;
+            }
+
+            JObject json = JObject.Parse(content);
+            JArray newsArray = (JArray)json["news"];
+        
+            if (newsArray == null)
+            {
+                return null;
+            }
 
             List<NewsInfo> newsList = new List<NewsInfo>();
-            HtmlNodeCollection newsNodes = htmlDoc.DocumentNode.SelectNodes(NewsXPath);
-
-            if (newsNodes != null)
+            foreach (JObject newsItem in newsArray)
             {
-                int count = 0;
-                foreach (HtmlNode node in newsNodes)
+                string title = newsItem["title"]?.ToString();
+                string imageUrl = newsItem["images"]?["img_microsite_thumbnail"]?["url"]?.ToString();
+                string newsLink = $"https://www.arcgames.com/en/games/star-trek-online/news/detail/{newsItem["id"]}";
+
+                if (!string.IsNullOrEmpty(title) && !string.IsNullOrEmpty(imageUrl) && !string.IsNullOrEmpty(newsLink))
                 {
-                    try
+                    newsList.Add(new NewsInfo
                     {
-                        if (count >= 9)
-                        {
-                            break;
-                        }
-
-                        string title = HttpUtility.HtmlDecode(node.SelectSingleNode(".//h3[contains(@class, 'news-page__news-post-title')]")?.InnerText.Trim());
-                        string imageUrl = node.SelectSingleNode(".//image")?.GetAttributeValue("xlink:href", string.Empty);
-                        string newsLink = node.GetAttributeValue("href", string.Empty);
-
-                        if (!string.IsNullOrEmpty(title) && !string.IsNullOrEmpty(imageUrl) && !string.IsNullOrEmpty(newsLink))
-                        {
-                            newsList.Add(new NewsInfo
-                            {
-                                Title = title,
-                                ImageUrl = imageUrl,
-                                NewsLink = new Uri(new Uri(BaseUrl), newsLink).ToString()
-                            });
-                        }
-
-                        count++;
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.Error(e.Message + e.StackTrace);
-                    }
+                        Title = title,
+                        ImageUrl = imageUrl,
+                        NewsLink = newsLink
+                    });
                 }
             }
 
