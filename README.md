@@ -38,7 +38,7 @@ By using Cache, The program will response with specific information less than 5 
   <ProgramLevel>Normal</ProgramLevel>
   <!--Log level. -->
   <!--Default value: Info-->
-  <LogLevel>Debug</LogLevel>
+  <LogLevel>Info</LogLevel>
   <!--Whether or not enable the Legacy Pipe Server instead of the Websocket Server. -->
   <!--Default value: False-->
   <LegacyPipeMode>False</LegacyPipeMode>
@@ -48,6 +48,9 @@ By using Cache, The program will response with specific information less than 5 
   <!--WebSocket Listener port. -->
   <!--Default value: 9500-->
   <WebSocketListenerPort>9500</WebSocketListenerPort>
+  <!--Whether or not enable the auto update feature.-->
+  <!--Default value: True-->
+  <AutoUpdate>True</AutoUpdate>
 </Settings>
 ```
 
