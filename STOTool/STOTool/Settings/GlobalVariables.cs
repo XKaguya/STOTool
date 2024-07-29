@@ -21,5 +21,8 @@ namespace STOTool.Settings
 
         [Description("WebSocket Listener port. \nDefault value: 9500")]
         public static ushort WebSocketListenerPort { get; set; } = 9500;
+        
+        [Description("Whether or not enable the auto update feature.\nDefault value: True")]
+        public static bool AutoUpdate { get; set; } = true;
     }
 }

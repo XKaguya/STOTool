@@ -24,7 +24,7 @@ namespace STOTool.Generic
         private static readonly TimeSpan NewsCacheExpiration = TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[1]);
         private static readonly TimeSpan FastCacheExpiration = TimeSpan.FromMinutes(GlobalVariables.CacheLifeTime[2]);
 
-        public static readonly Dictionary<string, DateTime> CacheSetTimes = new();
+        public static readonly ConcurrentDictionary<string, DateTime> CacheSetTimes = new();
         
         private static readonly Dictionary<string, Timer> Timers = new();
 
@@ -76,7 +76,7 @@ namespace STOTool.Generic
         private static void SetCacheItemWithCallback<T>(string key, T value, TimeSpan expiration, PostEvictionDelegate onExpiration)
         {
             MemoryCache.Remove(key);
-            
+
             var cacheEntryOptions = new MemoryCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = expiration
@@ -86,17 +86,18 @@ namespace STOTool.Generic
 
             Logger.Debug($"Setting cache item with key {key}, expiration {expiration}.");
             MemoryCache.Set(key, value, cacheEntryOptions);
+
             CacheSetTimes[key] = DateTime.Now;
+
             Logger.Debug($"Cache item with key {key} set with expiration {expiration} at {CacheSetTimes[key]}.");
         }
 
         private static async void OnExpired(object key, object value, EvictionReason reason, object state)
         {
-            if (CacheSetTimes.TryGetValue(key.ToString(), out DateTime setTime))
+            if (CacheSetTimes.TryRemove(key.ToString(), out DateTime setTime))
             {
                 var elapsedTime = DateTime.Now - setTime;
                 Logger.Debug($"Cache item with key {key} expired after {elapsedTime.TotalSeconds} seconds due to {reason}.");
-                CacheSetTimes.Remove(key.ToString());
             }
 
             try

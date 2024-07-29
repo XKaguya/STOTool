@@ -13,6 +13,7 @@ namespace STOTool.Generic
         private static RichTextBox _logRichTextBox;
         private static readonly string LogFilePath = "Info.log";
         private static readonly string CriticalLogPath;
+        private static readonly string ErrorLogPath;
         private static readonly object LockObject = new();
         private static int _logCount = 0;
         private static int _maxLogCount = 100;
@@ -22,6 +23,7 @@ namespace STOTool.Generic
         {
             _logRichTextBox = new RichTextBox();
             CriticalLogPath = $"[{DateTime.Now:MM-dd-HH-mm}]Critical.log";
+            ErrorLogPath = $"[{DateTime.Now:MM-dd-HH-mm}]ERROR.log";
             File.WriteAllText(LogFilePath, string.Empty);
         }
 
@@ -95,6 +97,10 @@ namespace STOTool.Generic
                 {
                     WriteCriticalLogToFile(logMessage);
                 }
+                if (level == LogLevel.Fatal || level == LogLevel.Error)
+                {
+                    WriteErrorLogToFile(logMessage);
+                }
                 return true;
             }
             return false;
@@ -133,6 +139,14 @@ namespace STOTool.Generic
             lock (LockObject)
             {
                 File.AppendAllText(CriticalLogPath, message + Environment.NewLine);
+            }
+        }
+
+        private static void WriteErrorLogToFile(string message)
+        {
+            lock (LockObject)
+            {
+                File.AppendAllText(ErrorLogPath, message + Environment.NewLine);
             }
         }
 

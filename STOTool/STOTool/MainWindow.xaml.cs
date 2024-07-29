@@ -16,7 +16,7 @@ namespace STOTool
     /// </summary>
     public partial class MainWindow
     {
-        private const string Version = "1.2.0";
+        public static readonly string Version = "1.2.2";
         
         public static FontFamily StFontFamily { get; private set; }
         
@@ -31,9 +31,14 @@ namespace STOTool
             InitializeComponent();
             Hide();
             Logger.ClearLogs();
+            
             PreInit();
             
             LogWindow.Instance.Show();
+            
+            AutoUpdate.CheckAndUpdate();
+            AutoUpdate.StartAutoUpdateTask();
+            
             Task.Run(PostInit);
 
             Logger.Info($"Thanks for using STOTool. Current Version: {Version}. If you meet any problem, please contact me at github.");
