@@ -1,5 +1,13 @@
 # STO-Tool
 
+<div align="center">
+
+[![Version](https://img.shields.io/github/v/release/XKaguya/STOTool?sort=semver&style=flat-square&color=8DBBE9&label=Version)]()
+[![GitHub Issues](https://img.shields.io/github/issues/XKaguya/STOTool/total?style=flat-square&label=Issues&color=d77982)](https://github.com/XKaguya/AutoReconnect-Remastered)
+![Downloads](https://img.shields.io/github/downloads/XKaguya/STOTool/total?style=flat-square&label=Downloads&color=d77982)
+
+</div>
+
 A tool for checking the server status of Star Trek Online written in C#.
 
 ![img](https://github.com/XKaguya/STOTool/assets/96401952/02eaa90d-a557-43be-a7fd-434c24c395a6)
