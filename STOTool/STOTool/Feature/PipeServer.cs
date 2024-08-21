@@ -262,7 +262,7 @@ namespace STOTool.Feature
                 {
                     Logger.Info("Pipe is connected and writable. Preparing to send response...");
 
-                    string result = await GetNewsImage.CallScreenshot(index);
+                    /*string result = await GetNewsImage.CallScreenshot(index);
 
                     if (string.IsNullOrEmpty(result))
                     {
@@ -270,9 +270,13 @@ namespace STOTool.Feature
                         return;
                     }
 
-                    byte[] resultBytes = Encoding.UTF8.GetBytes(result);
+                    byte[] resultBytes = Encoding.UTF8.GetBytes(result);*/
+                    
+                    // No longer in maintenance. This feature has been disposal in PipeServer.
+                    
+                    byte[] returnNull = Encoding.UTF8.GetBytes("null");
 
-                    await pipeServer.WriteAsync(resultBytes, 0, resultBytes.Length);
+                    await pipeServer.WriteAsync(returnNull, 0, returnNull.Length);
 
                     pipeServer.WaitForPipeDrain();
                 }

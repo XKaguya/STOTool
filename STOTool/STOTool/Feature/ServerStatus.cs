@@ -51,8 +51,7 @@ namespace STOTool.Feature
                     maintenanceInfo.Minutes = timeRemaining.Minutes;
                     maintenanceInfo.Seconds = timeRemaining.Seconds;
                 }
-
-                if (startEventTime.HasValue && endEventTime.HasValue && maintenanceType != MaintenanceTimeType.MaintenanceEnded && maintenanceType != MaintenanceTimeType.Null && maintenanceType != MaintenanceTimeType.None)
+                else if (startEventTime.HasValue && endEventTime.HasValue && maintenanceType != MaintenanceTimeType.MaintenanceEnded && maintenanceType != MaintenanceTimeType.Null && maintenanceType != MaintenanceTimeType.None)
                 {
                     var timeRemaining = endEventTime.Value.Subtract(currentTime);
                     if (timeRemaining < TimeSpan.Zero)
@@ -163,9 +162,11 @@ namespace STOTool.Feature
 
             DateTime startDateTime = date.Value.Date.Add(startTime.Value.TimeOfDay);
             DateTime endDateTime = date.Value.Date.Add(endTime.Value.TimeOfDay);
-            if (endTime < startTime)
+            if (endDateTime < startDateTime)
+            {
                 endDateTime = endDateTime.AddDays(1);
-
+            }
+            
             return (startDateTime, endDateTime);
         }
 

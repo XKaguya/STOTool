@@ -29,14 +29,11 @@ namespace STOTool
         {
             if (LogRichTextBox != null)
             {
-                LogRichTextBox.Dispatcher.BeginInvoke(() => 
-                {
-                    LogRichTextBox.ScrollToEnd();
-                });
+                LogRichTextBox.ScrollToEnd();
             }
             else
             {
-                Logger.Debug("LogRichTextBox is null.");
+                Logger.Fatal("LogRichTextBox is null.");
             }
         }
     

@@ -4,6 +4,8 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using STOTool.Class;
 using STOTool.Enum;
 using STOTool.Generic;
 
@@ -278,13 +280,21 @@ namespace STOTool.Feature
         {
             try
             {
-                string result = "null";
+                ScreenshotResult result = new ScreenshotResult
+                {
+                    NewsLink = "null",
+                    Base64Screenshot = "null"
+                };
+
                 if (index >= 0 && index <= 9)
                 {
                     result = await GetNewsImage.CallScreenshot(index);
+                    Logger.Debug($"Size: {result.Base64Screenshot.Length} Image Stream, {result.NewsLink.Length} News link.");
                 }
+                
+                string jsonResult = JsonConvert.SerializeObject(result);
 
-                byte[] resultBytes = Encoding.UTF8.GetBytes(result);
+                byte[] resultBytes = Encoding.UTF8.GetBytes(jsonResult);
 
                 await webSocket.SendAsync(new ArraySegment<byte>(resultBytes, 0, resultBytes.Length), WebSocketMessageType.Text, true, CancellationToken.None);
 

@@ -43,7 +43,7 @@ namespace STOTool.Generic
             }
         }
 
-        public static bool SetProgramLevel(ProgramLevel mode)
+        private static bool SetProgramLevel(ProgramLevel mode)
         {
             ProgramLevel = mode;
 

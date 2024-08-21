@@ -136,21 +136,19 @@ namespace STOTool.Feature
 
             string jsonData = await File.ReadAllTextAsync(NewsNodesFile);
             var previousData = JsonConvert.DeserializeObject<NewsNodes>(jsonData);
-
+            
             if (previousData != null && currentData.Hash == previousData.Hash)
             {
                 Logger.Info($"Hash has not changed. Saved: {previousData.Hash} Current: {currentData.Hash}");
                 return "null";
             }
-            
+
             if (previousData != null && currentData.Hash != previousData.Hash)
             {
-                await Cache.RemoveAll();
-                
                 Logger.Info($"Hash has changed. Saved: {previousData.Hash} Current: {currentData.Hash}");
-                
+
                 var result = await GetNewsImage.CallScreenshot(0, true);
-                
+
                 return result;
             }
 
@@ -163,6 +161,8 @@ namespace STOTool.Feature
 
             if (Helper.NullCheck(currentData))
             {
+                Logger.Debug("Current data is null.");
+                
                 return "null";
             }
             
@@ -172,10 +172,12 @@ namespace STOTool.Feature
             {
                 await StoreIntoFile(currentData);
 
-                Logger.Debug("Due to news has updated, Force refresh all caches.");
+                Logger.Debug($"Result length: {result.Length.ToString()}");
                 
                 return result;
             }
+
+            Logger.Debug("Somehow result passed NullCheck.");
 
             return "null";
         }

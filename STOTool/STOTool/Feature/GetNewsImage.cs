@@ -98,29 +98,41 @@ namespace STOTool.Feature
             }
         }
 
-        public static async Task<string> CallScreenshot(int index)
+        public static async Task<ScreenshotResult> CallScreenshot(int index)
         {
             try
             {
                 byte[] returnNull = Encoding.UTF8.GetBytes("null");
                 
                 string url = await GetNewsLink(index);
+                
+                ScreenshotResult nullScreenshotResult = new ScreenshotResult
+                {
+                    Base64Screenshot = "null",
+                    NewsLink = "null"
+                };
 
                 if (url == null)
                 {
-                    return "null";
+                    return nullScreenshotResult;
                 }
                 
                 byte[] screenshotData = await GetScreenshot(url);
 
                 if (screenshotData == returnNull)
                 {
-                    return "null";
+                    return nullScreenshotResult;
                 }
 
                 string base64String = Convert.ToBase64String(screenshotData);
 
-                return base64String;
+                ScreenshotResult screenshotResult = new ScreenshotResult
+                {
+                    Base64Screenshot = base64String,
+                    NewsLink = url
+                };
+
+                return screenshotResult;
             }
             catch (Exception e)
             {

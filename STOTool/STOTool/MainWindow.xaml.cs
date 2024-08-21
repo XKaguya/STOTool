@@ -16,7 +16,7 @@ namespace STOTool
     /// </summary>
     public partial class MainWindow
     {
-        public static readonly string Version = "1.2.2";
+        public static readonly string Version = "1.2.4";
         
         public static FontFamily StFontFamily { get; private set; }
         

@@ -22,7 +22,7 @@ namespace STOTool.Generic
         static Logger()
         {
             _logRichTextBox = new RichTextBox();
-            CriticalLogPath = $"[{DateTime.Now:MM-dd-HH-mm}]Critical.log";
+            CriticalLogPath = $"[{DateTime.Now:MM-dd-HH-mm}]CRITICAL.log";
             ErrorLogPath = $"[{DateTime.Now:MM-dd-HH-mm}]ERROR.log";
             File.WriteAllText(LogFilePath, string.Empty);
         }
