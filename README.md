@@ -10,7 +10,7 @@
 
 A tool for checking the server status of Star Trek Online written in C#.
 
-![img](https://github.com/XKaguya/STOTool/assets/96401952/02eaa90d-a557-43be-a7fd-434c24c395a6)
+![54c6ca7e6a42375e437d17e248ea68c7_720](https://github.com/user-attachments/assets/1b80e6b4-c350-40b6-9835-5e1b9f9e30f7)
 
 # Features
 ## Fast
