@@ -92,7 +92,7 @@ namespace STOTool.Generic
             Logger.Debug($"Cache item with key {key} set with expiration {expiration} at {CacheSetTimes[key]}.");
         }
 
-        private static async void OnExpired(object key, object value, EvictionReason reason, object state)
+        private static async void OnExpired(object? key, object? value, EvictionReason reason, object? state)
         {
             if (CacheSetTimes.TryRemove(key.ToString(), out DateTime setTime))
             {
@@ -125,7 +125,7 @@ namespace STOTool.Generic
             }
         }
 
-        public static async Task<CachedInfo> GetCachedInfoAsync()
+        public static async Task<CachedInfo?> GetCachedInfoAsync()
         {
             var lockHandle = GetOrCreateLock(CacheKey);
             if (!await lockHandle.WaitAsync(0))
@@ -136,7 +136,7 @@ namespace STOTool.Generic
 
             try
             {
-                if (MemoryCache.TryGetValue(CacheKey, out CachedInfo cachedInfo))
+                if (MemoryCache.TryGetValue(CacheKey, out CachedInfo? cachedInfo))
                 {
                     Logger.Debug("CachedInfo found in memory cache.");
                     return cachedInfo;
@@ -164,7 +164,7 @@ namespace STOTool.Generic
             }
         }
 
-        public static async Task<MaintenanceInfo> GetFastCachedMaintenanceInfoAsync()
+        public static async Task<MaintenanceInfo?> GetFastCachedMaintenanceInfoAsync()
         {
             var lockHandle = GetOrCreateLock(FastCacheKey);
             if (!await lockHandle.WaitAsync(0))
@@ -175,7 +175,7 @@ namespace STOTool.Generic
             
             try
             {
-                if (MemoryCache.TryGetValue(FastCacheKey, out MaintenanceInfo maintenanceInfo))
+                if (MemoryCache.TryGetValue(FastCacheKey, out MaintenanceInfo? maintenanceInfo))
                 {
                     Logger.Debug("FastCache found in memory cache.");
                     return maintenanceInfo;
@@ -200,7 +200,7 @@ namespace STOTool.Generic
             }
         }
 
-        public static async Task<CachedNews> GetCachedNewsAsync()
+        public static async Task<CachedNews?> GetCachedNewsAsync()
         {
             var lockHandle = GetOrCreateLock(NewsCacheKey);
             if (!await lockHandle.WaitAsync(0))
@@ -211,7 +211,7 @@ namespace STOTool.Generic
             
             try
             {
-                if (MemoryCache.TryGetValue(NewsCacheKey, out CachedNews cachedNews))
+                if (MemoryCache.TryGetValue(NewsCacheKey, out CachedNews? cachedNews))
                 {
                     Logger.Debug("NewsCache found in memory cache.");
                     return cachedNews;

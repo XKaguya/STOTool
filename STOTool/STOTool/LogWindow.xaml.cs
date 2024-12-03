@@ -12,6 +12,8 @@ namespace STOTool
         public static LogWindow Instance => LazyInstance.Value;
         private RichTextBox? LogRichTextBox { get; set; } = null;
         private static readonly Lazy<LogWindow> LazyInstance = new(() => new LogWindow());
+        
+        public static bool AutoScrollToEnd { get; set; }
 
         private LogWindow()
         {
@@ -24,12 +26,21 @@ namespace STOTool
                 Logger.Critical("Fatal Error. LogRichTextBox is null.");
             }
         }
-        
+
         private void ScrollToBottomClick(object sender, RoutedEventArgs ev)
         {
             if (LogRichTextBox != null)
             {
-                LogRichTextBox.ScrollToEnd();
+                if (!AutoScrollToEnd)
+                {
+                    AutoScrollToEnd = true;
+                    Logger.Debug("AutoScrollToEnd active.");
+                }
+                else
+                {
+                    AutoScrollToEnd = false;
+                    Logger.Debug("AutoScrollToEnd deactive.");
+                }
             }
             else
             {

@@ -35,11 +35,10 @@
       <Resource Include="Background\Bg_Up.png" />
       <None Remove="Background\Placeholder.png" />
       <Resource Include="Background\Placeholder.png" />
-      <EmbeddedResource Include="Font\StarTrek_Embedded.ttf" />
+      <EmbeddedResource Include="Font\StarTrek.ttf" />
     </ItemGroup>
 
     <ItemGroup>
       <None Remove="Font\StarTrek.ttf" />
-      <Resource Include="Font\StarTrek.ttf" />
     </ItemGroup>
 </Project>

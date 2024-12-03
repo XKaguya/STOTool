@@ -117,13 +117,24 @@ namespace STOTool.Generic
                 else
                 {
                     _logCount++;
-                    Paragraph paragraph = new Paragraph(new Run(message))
-                    {
-                        Foreground = color
-                    };
-                    _logRichTextBox.Document.Blocks.Add(paragraph);
+                    AppendLogMessage(message, color);
                 }
             });
+        }
+        
+        private static void AppendLogMessage(string message, SolidColorBrush color)
+        {
+            Paragraph paragraph = new Paragraph(new Run(message))
+            {
+                Foreground = color
+            };
+
+            _logRichTextBox.Document.Blocks.Add(paragraph);
+            
+            if (LogWindow.AutoScrollToEnd)
+            {
+                _logRichTextBox.ScrollToEnd();
+            }
         }
 
         private static void WriteLogToFile(string message)

@@ -185,7 +185,7 @@ namespace STOTool.Feature
                 DateTime? finalEndTime = utcEndTime;
                 if (startTime != null && endTime != null && utcStartTime != null && utcEndTime != null && !CompareTimeRanges(startTime, endTime, utcStartTime, utcEndTime))
                 {
-                    Logger.Debug("The time range isn't the same. It should be Kael's problem.");
+                    Logger.Debug("The time range isn't the same.");
                 }
                 (finalStartTime, finalEndTime) = ConvertToLocalTime(finalStartTime, finalEndTime);
                 return (date, finalStartTime, finalEndTime);

@@ -62,19 +62,24 @@ namespace STOTool.Feature
                         
                         return result;
                     }
-                    else
-                    {
-                        return "null";
-                    }
+                    
+                    return "null";
                 }
                 catch (TimeoutException ex)
                 {
                     Logger.Error($"Timeout Exception: {ex.Message}");
                     DrawNewsImage.Tips = "Official website might down. This is Cryptic's issue.";
                 }
-                catch (Exception e)
+                catch (Exception ex)
                 {
-                    Logger.Error($"General Exception: {e.Message} {e.StackTrace}");
+                    if (ex.Message.Contains("SSL connection", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Logger.Debug($"Cryptic Issue: {ex.Message}");
+                    }
+                    else
+                    {
+                        Logger.Error($"General Exception: {ex.Message} {ex.StackTrace}");
+                    }
                 }
 
                 retryCount++;
@@ -89,9 +94,9 @@ namespace STOTool.Feature
             return "null";
         }
 
-        private static List<NewsInfo> ParseJsonContent(string content)
+        private static List<NewsInfo>? ParseJsonContent(string content)
         {
-            if (string.IsNullOrEmpty(content))
+            if (string.IsNullOrEmpty(content) || content == "null")
             {
                 return null;
             }

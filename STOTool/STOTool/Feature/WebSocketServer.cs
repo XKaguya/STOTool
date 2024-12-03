@@ -171,6 +171,9 @@ namespace STOTool.Feature
                         case Command.ClientCheckServerAlive:
                             await ClientCheckServerAlive(webSocket);
                             break;
+                        case Command.ClientAskForCalendar:
+                            await ClientAskForCalendar(webSocket);
+                            break;
                         case Command.ClientAskForPassiveType:
                             await ClientAskForPassiveType(webSocket);
                             break;
@@ -235,6 +238,48 @@ namespace STOTool.Feature
                 await Cache.RemoveAll();
                 
                 Logger.Debug("Force refreshed all cache.");
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e.Message + e.StackTrace);
+            }
+        }
+        
+        private static async Task ClientAskForCalendar(WebSocket webSocket)
+        {
+            try
+            {
+                CachedInfo cachedInfo = await Cache.GetCachedInfoAsync();
+
+                StringBuilder stringBuilder = new StringBuilder();
+
+                stringBuilder.AppendLine($"Current Time: {DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}");
+                stringBuilder.AppendLine();
+
+                foreach (EventInfo ev in cachedInfo.EventInfos)
+                {
+                    stringBuilder.AppendLine("************************************************************");
+                    stringBuilder.AppendLine($"* Event Name   : {ev.Summary.PadRight(45)} *");
+                    stringBuilder.AppendLine($"* Start Time   : {ev.StartDate:yyyy-MM-dd HH:mm:ss}                          *");
+                    stringBuilder.AppendLine($"* End Time     : {ev.EndDate:yyyy-MM-dd HH:mm:ss}                            *");
+
+                    if (!string.IsNullOrEmpty(ev.TimeTillStart))
+                    {
+                        stringBuilder.AppendLine($"* Starts In    : {ev.TimeTillStart.PadRight(45)} *");
+                    }
+
+                    if (!string.IsNullOrEmpty(ev.TimeTillEnd) && string.IsNullOrEmpty(ev.TimeTillStart))
+                    {
+                        stringBuilder.AppendLine($"* Ends In      : {ev.TimeTillEnd.PadRight(45)} *");
+                    }
+
+                    stringBuilder.AppendLine("************************************************************");
+                    stringBuilder.AppendLine();
+                }
+
+                byte[] result = Encoding.UTF8.GetBytes(stringBuilder.ToString());
+
+                await webSocket.SendAsync(new ArraySegment<byte>(result, 0, result.Length), WebSocketMessageType.Text, true, CancellationToken.None);
             }
             catch (Exception e)
             {

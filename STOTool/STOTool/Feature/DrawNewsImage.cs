@@ -44,7 +44,7 @@ namespace STOTool.Feature
             Fonts.Add(60, MainWindow.StFontFamily.CreateFont(60));
         }
         
-        private static async Task<Image<Rgba32>> LoadImageAsync(byte[] imageBytes)
+        private static async Task<Image<Rgba32>?> LoadImageAsync(byte[] imageBytes)
         {
             try
             {
@@ -126,6 +126,11 @@ namespace STOTool.Feature
 
         private static string DrawOnBackground(Image<Rgba32> backgroundImage, List<Image<Rgba32>> newsImages, List<string> newsTitles, MaintenanceInfo maintenanceInfo, List<EventInfo> eventInfos, int startX, int startY)
         {
+            if (Helper.NullCheck(eventInfos))
+            {
+                Logger.Debug("Event were null. Might normal in next call.");
+            }
+            
             eventInfos = eventInfos.Skip(eventInfos.Count - 3).Take(3).ToList();
 
             if (string.IsNullOrEmpty(Tips))
@@ -136,7 +141,9 @@ namespace STOTool.Feature
                     formattedTime += $" Cache last refresh at {setTime.ToString("HH:mm:ss")}";
                 }
                 
-                Tips = formattedTime;
+                Tips = formattedTime + $" Generated with STOTool version {MainWindow.Version}";
+                
+                //TODO: Might add real tips.
             }
             
             DrawTips(backgroundImage, Tips);
@@ -157,9 +164,9 @@ namespace STOTool.Feature
             CachedInfo cachedInfo = await Cache.GetCachedInfoAsync();
             MaintenanceInfo maintenanceInfo = await Cache.GetFastCachedMaintenanceInfoAsync();
 
-            if (Helper.NullCheck(cachedInfo) && Helper.NullCheck(maintenanceInfo))
+            if (Helper.NullCheck(cachedInfo) || Helper.NullCheck(maintenanceInfo))
             {
-                Logger.Error($"Something is null.");
+                Logger.Debug($"Something is null.");
                 return "null";
             }
             
@@ -184,6 +191,11 @@ namespace STOTool.Feature
                 if (imageBytes != null!)
                 {
                     var image = await LoadImageAsync(imageBytes);
+                    if (image == null)
+                    {
+                        continue;
+                    }
+                    
                     image.Mutate(x => x.Resize(407, 232));
                     newsImages.Add(image);
                 }

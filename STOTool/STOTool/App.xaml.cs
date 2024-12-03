@@ -31,17 +31,10 @@ namespace STOTool
 
               Api.ParseConfig();
 
-              if (GlobalVariables.LegacyPipeMode)
-              {
-                  await Feature.PipeServer.StartServerAsync();
-              }
-              else
-              {
-                  string prefix = $"{GlobalVariables.WebSocketListenerAddress}:{GlobalVariables.WebSocketListenerPort}/";
-                  string[] prefixes = { prefix };
+              string prefix = $"{GlobalVariables.WebSocketListenerAddress}:{GlobalVariables.WebSocketListenerPort}/";
+              string[] prefixes = { prefix };
 
-                  await Feature.WebSocketServer.StartWebSocketServerAsync(prefixes);
-              }
+              await Feature.WebSocketServer.StartWebSocketServerAsync(prefixes);
           }
           catch (Exception e)
           {

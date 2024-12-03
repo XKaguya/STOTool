@@ -16,7 +16,7 @@ namespace STOTool
     /// </summary>
     public partial class MainWindow
     {
-        public static readonly string Version = "1.2.4";
+        public static readonly string Version = "1.2.7";
         
         public static FontFamily StFontFamily { get; private set; }
         
@@ -40,8 +40,6 @@ namespace STOTool
             AutoUpdate.StartAutoUpdateTask();
             
             Task.Run(PostInit);
-
-            Logger.Info($"Thanks for using STOTool. Current Version: {Version}. If you meet any problem, please contact me at github.");
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -55,7 +53,7 @@ namespace STOTool
         {
             try
             {
-                Logger.Info($"Proceeding PostInit phase.");
+                Logger.Debug($"Proceeding PostInit phase.");
 
                 var cacheNewsTask = Cache.GetCachedNewsAsync();
                 var cacheInfoTask = Cache.GetCachedInfoAsync();
@@ -63,36 +61,35 @@ namespace STOTool
                     
                 await Task.WhenAll(cacheNewsTask, cacheInfoTask, cacheMaintenanceTask);
                 
-                Logger.Info($"PostInit has completed.");
+                Logger.Debug($"PostInit has completed.");
                 
                 Cache.StartCacheGuard();
 
-                while (true)
-                {
-                    await Loop1();
-
-                    await Loop2();
-                }
+                _ = Task.Run(() => Loop1());
+                _ = Task.Run(() => Loop2());
             }
             catch (Exception e)
             {
                 Logger.Error(e.Message + e.StackTrace);
-                throw;
             }
         }
 
         private static async Task Loop1()
         {
-            await Task.Run(() => AutoNews.HasHashChanged());
-                    
-            await Task.Delay(TimeSpan.FromSeconds(20));
+            while (true)
+            {
+                await Task.Run(() => AutoNews.HasHashChanged());
+                await Task.Delay(TimeSpan.FromSeconds(20));
+            }
         }
-        
+
         private static async Task Loop2()
         {
-            await Task.Run(() => DrawNewsImage.DrawImageAsync());
-                    
-            await Task.Delay(TimeSpan.FromMinutes(10));
+            while (true)
+            {
+                await Task.Run(() => DrawNewsImage.DrawImageAsync());
+                await Task.Delay(TimeSpan.FromMinutes(10));
+            }
         }
 
         private void LogButtonClick(object sender, RoutedEventArgs e)
@@ -111,7 +108,7 @@ namespace STOTool
         {
             try
             {
-                var fontStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("STOTool.Font.StarTrek_Embedded.ttf");
+                var fontStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("STOTool.Font.StarTrek.ttf");
                 var fontCollection = new FontCollection();
                 if (fontStream != null)
                 {

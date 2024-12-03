@@ -24,7 +24,7 @@ namespace STOTool.Feature
 
                 if (cachedNews.ScreenshotData!.TryGetValue(url, out var screenshotData))
                 {
-                    Logger.Info($"Cache hit: {url}");
+                    Logger.Debug($"Cache hit: {url}");
 
                     return screenshotData;
                 }
@@ -47,7 +47,6 @@ namespace STOTool.Feature
             
             if (noCache)
             {
-                
                 try
                 {
                     return await Helper.GetWebsiteScreenshot(url);
@@ -169,7 +168,6 @@ namespace STOTool.Feature
 
                 if (index > newsList.Count)
                 {
-                    Logger.Error("Index out of range.");
                     return newsList[0].NewsLink;
                 }
                 else

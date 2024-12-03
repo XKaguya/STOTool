@@ -9,7 +9,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:local="clr-namespace:STOTool"
         mc:Ignorable="d"
-        Title="Log" Height="400" Width="800">
+        Title="Log" Height="500" Width="1100">
     <Border Background="#FFF" CornerRadius="10">
         <Grid>
             <Grid.RowDefinitions>

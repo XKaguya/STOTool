@@ -13,9 +13,6 @@ namespace STOTool.Settings
         [Description("Log level. \nDefault value: Info")]
         public static string LogLevel { get; set; } = "Info";
 
-        [Description("Whether or not enable the Legacy Pipe Server instead of the Websocket Server. \nDefault value: False")]
-        public static bool LegacyPipeMode { get; set; } = false;
-
         [Description("WebSocket Listener address. \nDefault value: http://localhost")]
         public static string WebSocketListenerAddress { get; set; } = "http://localhost";
 

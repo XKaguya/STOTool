@@ -184,15 +184,13 @@ namespace STOTool.Generic
             switch (maintenanceInfo.ShardStatus)
             {
                 case MaintenanceTimeType.Maintenance:
-                    result =
-                        $"Server is currently under maintenance. Finishes in {maintenanceInfo.Days} days {maintenanceInfo.Hours} hours {maintenanceInfo.Minutes} minutes {maintenanceInfo.Seconds} seconds.";
+                    result = $"Maintenance finishes in {maintenanceInfo.Days} days {maintenanceInfo.Hours} hours {maintenanceInfo.Minutes} minutes {maintenanceInfo.Seconds} seconds.";
                     break;
                 case MaintenanceTimeType.MaintenanceEnded:
                     result = "Maintenance has ended.";
                     break;
                 case MaintenanceTimeType.WaitingForMaintenance:
-                    result =
-                        $"Server is waiting for maintenance. Starts in {maintenanceInfo.Days} days {maintenanceInfo.Hours} hours {maintenanceInfo.Minutes} minutes {maintenanceInfo.Seconds} seconds.";
+                    result = $"Waiting for maintenance. Starts in {maintenanceInfo.Days} days {maintenanceInfo.Hours} hours {maintenanceInfo.Minutes} minutes {maintenanceInfo.Seconds} seconds.";
                     break;
                 default:
                     result = "";

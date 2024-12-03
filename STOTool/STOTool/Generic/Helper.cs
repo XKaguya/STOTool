@@ -22,11 +22,19 @@ namespace STOTool.Generic
         private static readonly Lazy<Task<IPlaywright>> LazyPlaywright = new(() => Playwright.CreateAsync());
         private static readonly Lazy<Task<IBrowser>> LazyBrowser = new(async () =>
         {
-            var playwright = await LazyPlaywright.Value;
-            return await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+            try
             {
-                Headless = false
-            });
+                var playwright = await LazyPlaywright.Value;
+                return await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+                {
+                    Headless = false
+                });
+            }
+            catch (Exception ex)
+            {
+                Logger.Critical(ex.Message + ex.StackTrace);
+                throw;
+            }
         });
 
         private static Task<IBrowser> GetBrowserAsync() => LazyBrowser.Value;
@@ -37,17 +45,6 @@ namespace STOTool.Generic
             if (BrowserInternal == null)
             {
                 BrowserInternal = await GetBrowserAsync();
-                return true;
-            }
-
-            return false;
-        }
-
-        private static bool InitBrowser()
-        {
-            if (BrowserInternal == null)
-            {
-                BrowserInternal = GetBrowser();
                 return true;
             }
 
@@ -70,7 +67,7 @@ namespace STOTool.Generic
             }
         }
 
-        public static async Task<byte[]>? DownloadImageAsync(string imageUrl)
+        public static async Task<byte[]?> DownloadImageAsync(string imageUrl)
         {
             try
             {
@@ -118,7 +115,7 @@ namespace STOTool.Generic
             }
         }
 
-        public static async Task<IPage> CreateNewPageAsync()
+        private static async Task<IPage> CreateNewPageAsync()
         {
             var browser = await GetBrowserAsync();
             return await browser.NewPageAsync();
@@ -205,13 +202,19 @@ namespace STOTool.Generic
                         FullPage = true
                     });
 
-                    Logger.Info($"Finished download of {link}");
+                    Logger.Debug($"Finished download of {link}");
                     return new { link, screenshot };
                 }
-                catch (Exception e)
+                catch (Exception ex)
                 {
-                    Logger.Error(e.Message + e.StackTrace);
                     byte[] returnNull = Encoding.UTF8.GetBytes("null");
+                    
+                    if (ex.Message.Contains("ERR_CONNECTION_CLOSED ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Logger.Debug($"Cryptic Issue: {ex.Message}");
+                        return new { link, screenshot = returnNull };
+                    }
+                    
                     return new { link, screenshot = returnNull };
                 }
                 finally
@@ -259,23 +262,45 @@ namespace STOTool.Generic
         public static bool NullCheck(EventInfo? eventInfo) => eventInfo == null;
         public static bool NullCheck(NewsInfo? newsInfo) => newsInfo == null;
         public static bool NullCheck(MaintenanceInfo? maintenanceInfo) => maintenanceInfo == null;
-        public static bool NullCheck(List<NewsInfo>? newsInfos) => newsInfos == null;
-        public static bool NullCheck(List<EventInfo>? eventInfos) => eventInfos == null;
-        public static bool NullCheck(byte[] bytes) => bytes == null || bytes.Length == 0;
+
+        public static bool NullCheck(List<NewsInfo>? newsInfos)
+        {
+            if (newsInfos == null)
+            {
+                return true;
+            }
+
+            return newsInfos.Count == 0;
+        }
+        public static bool NullCheck(List<EventInfo>? eventInfos) 
+        {
+            return eventInfos == null || eventInfos.Count == 0;
+        }
+
+        public static bool NullCheck(byte[]? bytes) => bytes == null || bytes.Length == 0;
         public static bool NullCheck(string str) => string.IsNullOrEmpty(str);
-        public static bool NullCheck(CachedNews cachedNews) => cachedNews == null;
-        public static bool NullCheck(NewsNodes newsNodes)
+        public static bool NullCheck(CachedNews? cachedNews) => cachedNews == null;
+        public static bool NullCheck(NewsNodes? newsNodes)
         {
             if (newsNodes == null) return true;
             return string.IsNullOrEmpty(newsNodes.Node0) || string.IsNullOrEmpty(newsNodes.Node1) || string.IsNullOrEmpty(newsNodes.Node2) || string.IsNullOrEmpty(newsNodes.Hash);
         }
 
-        public static bool NullCheck(CachedInfo cachedInfo)
+        public static bool NullCheck(CachedInfo? cachedInfo)
         {
             if (cachedInfo == null) return true;
-            return cachedInfo.NewsInfos.Count == 0 && cachedInfo.EventInfos.Count == 0;
-        }
+            
+            if (cachedInfo.NewsInfos == null || cachedInfo.NewsInfos.Count == 0)
+            {
+                if (cachedInfo.EventInfos == null || cachedInfo.EventInfos.Count == 0)
+                {
+                    return true;
+                }
+            }
 
+            return false;
+        }
+        
         public static string StringTrim(string str, int length)
         {
             const string ellipsis = "...";

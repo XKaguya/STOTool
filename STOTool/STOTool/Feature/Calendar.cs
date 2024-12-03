@@ -17,7 +17,7 @@ namespace STOTool.Feature
     {
         private static readonly string GoogleCalendarId = "uhio1bvtudq50n2qhfeo98iduo@group.calendar.google.com";
         
-        public static async Task<List<EventInfo>>? GetRecentEventsAsync()
+        public static async Task<List<EventInfo>?> GetRecentEventsAsync()
         {
             try
             {
@@ -26,8 +26,15 @@ namespace STOTool.Feature
                 string credPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName);
 
                 UserCredential credential;
+                
+                if (!File.Exists("client_secret.json"))
+                {
+                    Logger.Critical($"Google Calendar Credential file not exist. Will not proceed unless the file was placed correctly.");
+                    return new List<EventInfo>();
+                }
 
-                using var stream = new FileStream("client_secret.json", FileMode.Open, FileAccess.Read);
+                await using var stream = new FileStream("client_secret.json", FileMode.Open, FileAccess.Read);
+                
                 var secrets = await GoogleClientSecrets.FromStreamAsync(stream);
                 credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
                     new ClientSecrets
@@ -47,7 +54,7 @@ namespace STOTool.Feature
                 });
 
                 EventsResource.ListRequest request = service.Events.List(GoogleCalendarId);
-                request.TimeMin = DateTime.UtcNow;
+                request.TimeMinDateTimeOffset = DateTime.Now;
                 request.ShowDeleted = false;
                 request.SingleEvents = true;
                 request.MaxResults = 10;
@@ -58,33 +65,41 @@ namespace STOTool.Feature
                 if (events.Items == null || events.Items.Count == 0)
                 {
                     Logger.Info("No upcoming events found.");
-                    return null;
+                    return new List<EventInfo>();
                 }
 
                 List<EventInfo> eventInfos = new List<EventInfo>();
 
                 foreach (var eventItem in events.Items)
                 {
+                    string startDate = eventItem.Start.DateTimeDateTimeOffset.HasValue 
+                        ? eventItem.Start.DateTimeDateTimeOffset.Value.ToLocalTime().ToString("yyyy-MM-dd") 
+                        : eventItem.Start.Date;
+                    
+                    string endDate = eventItem.End.DateTimeDateTimeOffset.HasValue 
+                        ? eventItem.End.DateTimeDateTimeOffset.Value.ToLocalTime().ToString("yyyy-MM-dd") 
+                        : "All-Day Event";
+
                     EventInfo eventInfo = new EventInfo
                     {
-                        StartDate = eventItem.Start.DateTime?.ToLocalTime().ToString("yyyy-MM-dd") ?? eventItem.Start.Date,
-                        EndDate = eventItem.End.DateTime?.ToLocalTime().ToString("yyyy-MM-dd") ?? "All-Day Event",
+                        StartDate = startDate,
+                        EndDate = endDate,
                         Summary = eventItem.Summary
                     };
-
-                    if (eventItem.Start.DateTime.HasValue && DateTime.UtcNow < eventItem.Start.DateTime.Value)
+                    
+                    if (eventItem.Start.DateTimeDateTimeOffset.HasValue && DateTime.Now < eventItem.Start.DateTimeDateTimeOffset.Value.ToLocalTime())
                     {
-                        TimeSpan timeFromStart = eventItem.Start.DateTime.Value - DateTime.UtcNow;
-                        eventInfo.TimeTillStart = $"{(int)timeFromStart.TotalDays} days.";
+                        TimeSpan timeFromStart = eventItem.Start.DateTimeDateTimeOffset.Value.ToLocalTime() - DateTime.Now;
+                        eventInfo.TimeTillStart = $"{(int)timeFromStart.TotalDays} days";
                     }
-
-                    if (eventItem.End.DateTime.HasValue)
+                    
+                    if (eventItem.End.DateTimeDateTimeOffset.HasValue)
                     {
-                        DateTimeOffset endTime = eventItem.End.DateTime.Value.ToLocalTime();
-                        if (DateTime.UtcNow < endTime)
+                        DateTimeOffset endTime = eventItem.End.DateTimeDateTimeOffset.Value.ToLocalTime();
+                        if (DateTime.Now < endTime)
                         {
-                            TimeSpan timeUntilEnd = endTime - DateTime.UtcNow;
-                            eventInfo.TimeTillEnd = $"{(int)timeUntilEnd.TotalDays} days.";
+                            TimeSpan timeUntilEnd = endTime - DateTime.Now;
+                            eventInfo.TimeTillEnd = $"{(int)timeUntilEnd.TotalDays} days";
                         }
                         else
                         {
@@ -99,7 +114,15 @@ namespace STOTool.Feature
             }
             catch (Exception ex)
             {
-                Logger.Error($"{ex.Message}, {ex.StackTrace}");
+                if (ex.Message.Contains("SSL connection", StringComparison.OrdinalIgnoreCase))
+                {
+                    Logger.Debug($"Cryptic Issue: {ex.Message}");
+                }
+                else
+                {
+                    Logger.Error($"{ex.Message}, {ex.StackTrace}");
+                }
+                
                 return new List<EventInfo>();
             }
         }
