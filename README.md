@@ -36,6 +36,8 @@ By using Cache, The program will response with specific information less than 5 
 
 
 # Settings
+`LegacyPipeMode` Option has been removed since Version 1.2.7
+
 ```xml
 <Settings>
   <!--Cache life time in minute. -->
