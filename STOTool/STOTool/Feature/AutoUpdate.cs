@@ -14,8 +14,8 @@ namespace STOTool.Feature
         private static readonly string Author = "Xkaguya";
         private static readonly string Project = "STOTool";
         private static readonly string ExeName = "STOTool.exe";
-        private static readonly string CurrentExePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ExeName);
-        private static readonly string NewExePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "STOTool-New.exe");
+        private static readonly string CurrentExePath = Path.Combine(Environment.CurrentDirectory, ExeName);
+        private static readonly string NewExePath = Path.Combine(Environment.CurrentDirectory, "STOTool-New.exe");
         private static readonly CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
 
         public static void StartAutoUpdateTask()
@@ -41,7 +41,7 @@ namespace STOTool.Feature
             
             try
             {
-                string commonUpdaterPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CommonUpdater.exe");
+                string commonUpdaterPath = Path.Combine(Directory.GetCurrentDirectory(), "CommonUpdater.exe");
 
                 if (!File.Exists(commonUpdaterPath))
                 {
