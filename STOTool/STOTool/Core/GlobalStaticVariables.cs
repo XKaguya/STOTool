@@ -8,7 +8,7 @@ namespace STOTool.Core
 {
     public class GlobalStaticVariables
     {
-        public static readonly string Version = "1.2.8";
+        public static readonly string Version = "1.2.9";
         public static FontFamily StFontFamily { get; set; }
         public static Dictionary<string, Image<Rgba32>?> BackgroundImageDictionary { get; set; } = new ();
 
