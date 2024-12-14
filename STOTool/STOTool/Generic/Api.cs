@@ -12,7 +12,7 @@ namespace STOTool.Generic
     public class Api
     {
         private static ProgramLevel ProgramLevel { get; set; } = ProgramLevel.Normal;
-        private static string ConfigFilePath { get; } = "config.xml";
+        public const string ConfigFilePath = "config.xml";
 
         public static bool IsDebugMode()
         {
@@ -43,7 +43,7 @@ namespace STOTool.Generic
             }
         }
 
-        private static bool SetProgramLevel(ProgramLevel mode)
+        public static bool SetProgramLevel(ProgramLevel mode)
         {
             ProgramLevel = mode;
 
@@ -59,7 +59,7 @@ namespace STOTool.Generic
                     Logger.Error("Config file not exist.");
                     File.WriteAllText(ConfigFilePath, string.Empty);
 
-                    SaveToXml(ConfigFilePath);  
+                    SaveSettingsToLocalFile(ConfigFilePath);  
                 }
 
                 LoadFromXml(ConfigFilePath);
@@ -138,7 +138,7 @@ namespace STOTool.Generic
             }
         }
 
-        private static void SaveToXml(string filePath)
+        public static void SaveSettingsToLocalFile(string filePath)
         {
             XmlDocument doc = new XmlDocument();
             XmlElement root = doc.CreateElement("Settings");
@@ -195,6 +195,11 @@ namespace STOTool.Generic
                 default:
                     result = "";
                     break;
+            }
+
+            if (!string.IsNullOrEmpty(maintenanceInfo.Message))
+            {
+                return maintenanceInfo.Message;
             }
 
             return result;

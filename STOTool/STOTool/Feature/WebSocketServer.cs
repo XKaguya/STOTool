@@ -111,7 +111,9 @@ namespace STOTool.Feature
         {
             try
             {
-                byte[] buffer = new byte[10000000];
+                // 2024-12-12
+                // Increased the buffer from 10mb to 50mb.
+                byte[] buffer = new byte[50000000];
 
                 while (webSocket.State == WebSocketState.Open)
                 {

@@ -12,6 +12,7 @@ using System.Linq;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Png;
+using STOTool.Core;
 using EventInfo = STOTool.Class.EventInfo;
 using Point = SixLabors.ImageSharp.Point;
 
@@ -40,8 +41,8 @@ namespace STOTool.Feature
 
         public static void InitFonts()
         {
-            Fonts.Add(50, MainWindow.StFontFamily.CreateFont(50));
-            Fonts.Add(60, MainWindow.StFontFamily.CreateFont(60));
+            Fonts.Add(50, GlobalStaticVariables.StFontFamily.CreateFont(50));
+            Fonts.Add(60, GlobalStaticVariables.StFontFamily.CreateFont(60));
         }
         
         private static async Task<Image<Rgba32>?> LoadImageAsync(byte[] imageBytes)
@@ -141,7 +142,7 @@ namespace STOTool.Feature
                     formattedTime += $" Cache last refresh at {setTime.ToString("HH:mm:ss")}";
                 }
                 
-                Tips = formattedTime + $" Generated with STOTool version {MainWindow.Version}";
+                Tips = formattedTime + $" Generated with STOTool version {GlobalStaticVariables.Version}";
                 
                 //TODO: Might add real tips.
             }
@@ -209,11 +210,11 @@ namespace STOTool.Feature
                 case MaintenanceTimeType.None:
                 case MaintenanceTimeType.Null:
                 case MaintenanceTimeType.MaintenanceEnded:
-                    backgroundImage = MainWindow.BackgroundImageUp;
+                    backgroundImage = GlobalStaticVariables.BackgroundImageDictionary["Up"];
                     break;
 
                 default:
-                    backgroundImage = MainWindow.BackgroundImageDown;
+                    backgroundImage = GlobalStaticVariables.BackgroundImageDictionary["Down"];
                     break;
             }
 

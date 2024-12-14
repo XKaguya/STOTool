@@ -1,0 +1,264 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/crypto-js@3.1.9-1/crypto-js.js"></script>
+    
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8/dist/sweetalert2.min.js"></script>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .login-container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+            color: #333;
+        }
+
+        input:focus {
+            border-color: #0056b3;
+            outline: none;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #0056b3;
+            color: white;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #004085;
+        }
+
+        .form-footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        .form-footer a {
+            color: #0056b3;
+            text-decoration: none;
+        }
+
+        .form-footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .change-password-form {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .change-password-form h3 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .change-password-form input {
+            margin-bottom: 15px;
+        }
+
+    </style>
+</head>
+<body>
+<div class="login-container">
+    <h2>Login</h2>
+    <form id="loginForm">
+        <div>
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+        <div>
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        <button type="submit">Login</button>
+    </form>
+
+    <div class="form-footer">
+        <p>Forgot your <a href="javascript:void(0);" id="forgotPasswordLink">password?</a></p>
+        <p>Need to <a href="javascript:void(0);" id="changePasswordLink">change your password?</a></p>
+    </div>
+    
+    <div class="change-password-form" id="changePasswordForm">
+        <h3>Change Password</h3>
+        <form id="changePasswordFormContent">
+            <div>
+                <label for="currentUsername">Current Username</label>
+                <input type="text" id="currentUsername" name="currentUsername" required>
+            </div>
+            <div>
+                <label for="newUsername">New Username (Leave blank to keep current)</label>
+                <input type="text" id="newUsername" name="newUsername">
+            </div>
+            <div>
+                <label for="currentPassword">Current Password</label>
+                <input type="password" id="currentPassword" name="currentPassword" required>
+            </div>
+            <div>
+                <label for="newPassword">New Password</label>
+                <input type="password" id="newPassword" name="newPassword" required>
+            </div>
+            <button type="submit">Change Password</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    $("#loginForm").submit(function(event) {
+        event.preventDefault();
+
+        let username = $("#username").val();
+        let password = $("#password").val();
+
+        let hashedPassword = CryptoJS.SHA256(password).toString(CryptoJS.enc.Base64);
+
+        let formData = {
+            username: username,
+            password: hashedPassword
+        };
+
+        $.ajax({
+            url: '/Process/ValidateCredentials',
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Login successful',
+                        text: 'You have successfully logged in.'
+                    });
+
+                    let currentUrl = window.location.href;
+                    let urlParts = currentUrl.split('/');
+                    urlParts[urlParts.length - 1] = 'Index';
+                    let newUrl = urlParts.join('/');
+                    console.log(newUrl);
+
+                    window.location.replace(newUrl);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message || 'Unable to change password. Please try again.'
+                    });
+                }
+            },
+            error: function(error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'Invalid username or password.'
+                });
+            }
+        });
+    });
+        
+    $("#changePasswordLink").click(function() {
+        $(".login-container form").hide();
+        $(".form-footer").hide();
+        $("#changePasswordForm").show();
+        $("#changePasswordFormContent").show();
+    });
+    
+    $("#changePasswordFormContent").submit(function(event) {
+        event.preventDefault();
+
+        let currentUsername = $("#currentUsername").val();
+        let newUsername = $("#newUsername").val() || currentUsername;
+        let currentPassword = $("#currentPassword").val();
+        let newPassword = $("#newPassword").val();
+        
+        let hashedCurrentPassword = CryptoJS.SHA256(currentPassword).toString(CryptoJS.enc.Base64);
+        let hashedNewPassword = CryptoJS.SHA256(newPassword).toString(CryptoJS.enc.Base64);
+
+        let passwordChangeData = {
+            Username: currentUsername,
+            NewUsername: newUsername,
+            Password: hashedCurrentPassword,
+            NewPassword: hashedNewPassword
+        };
+
+        $.ajax({
+            url: '/Process/ChangePassword',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(passwordChangeData),
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Password changed successfully',
+                        text: response.message || 'Your password has been updated.'
+                    });
+                    $("#changePasswordForm").hide();
+                    $(".login-container form").show();
+                    $(".form-footer").show();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message || 'Unable to change password. Please try again.'
+                    });
+                }
+            },
+            error: function(error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Unable to change password. Please try again.'
+                });
+            }
+        });
+    });
+</script>
+</body>
+</html>

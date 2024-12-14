@@ -11,7 +11,7 @@ namespace STOTool.Generic
     public class Logger
     {
         private static RichTextBox _logRichTextBox;
-        private static readonly string LogFilePath = "Info.log";
+        public const string LogFilePath = "Info.log";
         private static readonly string CriticalLogPath;
         private static readonly string ErrorLogPath;
         private static readonly object LockObject = new();
@@ -51,42 +51,42 @@ namespace STOTool.Generic
             return _logRichTextBox.Background == color;
         }
 
-        public static bool Info(string message, [CallerMemberName] string callerName = "")
+        public static bool Info(object message, [CallerMemberName] string callerName = "")
         {
             return Log(message, LogLevel.Info, callerName);
         }
 
-        public static bool Warning(string message, [CallerMemberName] string callerName = "")
+        public static bool Warning(object message, [CallerMemberName] string callerName = "")
         {
             return Log(message, LogLevel.Warning, callerName);
         }
 
-        public static bool Error(string message, [CallerMemberName] string callerName = "")
+        public static bool Error(object message, [CallerMemberName] string callerName = "")
         {
             return Log(message, LogLevel.Error, callerName);
         }
 
-        public static bool Debug(string message, [CallerMemberName] string callerName = "")
+        public static bool Debug(object message, [CallerMemberName] string callerName = "")
         {
             return Log(message, LogLevel.Debug, callerName);
         }
 
-        public static bool Trace(string message, [CallerMemberName] string callerName = "")
+        public static bool Trace(object message, [CallerMemberName] string callerName = "")
         {
             return Log(message, LogLevel.Trace, callerName);
         }
 
-        public static bool Fatal(string message, [CallerMemberName] string callerName = "")
+        public static bool Fatal(object message, [CallerMemberName] string callerName = "")
         {
             return Log(message, LogLevel.Fatal, callerName);
         }
 
-        public static bool Critical(string message, [CallerMemberName] string callerName = "")
+        public static bool Critical(object message, [CallerMemberName] string callerName = "")
         {
             return Log(message, LogLevel.Critical, callerName);
         }
 
-        private static bool Log(string message, LogLevel level, string callerName)
+        private static bool Log(object message, LogLevel level, string callerName)
         {
             if (_currentLogLevel >= level)
             {
