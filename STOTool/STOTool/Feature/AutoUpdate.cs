@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using STOTool.Core;
 using STOTool.Generic;
 using STOTool.Settings;
 
@@ -48,7 +49,7 @@ namespace STOTool.Feature
                     return;
                 }
                 
-                string arguments = $"{Project} {ExeName} {Author} {MainWindow.Version} \"{CurrentExePath}\" \"{NewExePath}\"";
+                string arguments = $"{Project} {ExeName} {Author} {GlobalStaticVariables.Version} \"{CurrentExePath}\" \"{NewExePath}\"";
                 
                 var startInfo = new ProcessStartInfo
                 {

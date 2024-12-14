@@ -1,0 +1,195 @@
+﻿@model STOTool.Class.Settings
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8/dist/sweetalert2.min.js"></script>
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #ffb6b9, #fae3d9);
+            font-family: 'Poppins', sans-serif;
+            color: #333;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        h1.section-header {
+            font-size: 2.5rem;
+            color: #ffffff;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .card {
+            border-radius: 20px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            background: white;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            background-color: #4e54c8;
+            color: #fff;
+            font-size: 1.5rem;
+            font-weight: 600;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .card-body {
+            padding: 30px;
+        }
+
+        .settings-item {
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .settings-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .settings-item p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        .settings-item strong {
+            color: #4e54c8;
+        }
+        
+        .btn-primary {
+            background-color: #4e54c8;
+            border-color: #4e54c8;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            border-radius: 30px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: #2a2b88;
+            border-color: #2a2b88;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 class="section-header">Settings</h1>
+
+    <div class="card">
+        <div class="card-header">
+            <h5>Current Settings</h5>
+        </div>
+        <div class="card-body">
+            <form id="settingsForm" method="post" action="/Process/ApplySettings">
+                <div class="settings-item">
+                    <label for="ProgramLevel"><strong>Program Level:</strong></label>
+                    <input type="text" id="ProgramLevel" name="ProgramLevel" class="form-control" value="@Model.ProgramLevel" />
+                </div>
+                <div class="settings-item">
+                    <label for="LogLevel"><strong>Log Level:</strong></label>
+                    <input type="text" id="LogLevel" name="LogLevel" class="form-control" value="@Model.LogLevel" />
+                </div>
+                <div class="settings-item">
+                    <label for="AutoUpdate"><strong>Auto Update:</strong></label>
+                    <input type="text" id="AutoUpdate" name="AutoUpdate" class="form-control" value="@string.Join(", ", Model.AutoUpdate)" />
+                </div>
+                <div class="settings-item">
+                    <label for="CacheLifeTime"><strong>Cache Life Time:</strong></label>
+                    <input type="text" id="CacheLifeTime" name="CacheLifeTime" class="form-control" value="@string.Join(", ", Model.CacheLifeTime)" />
+                </div>
+                <div class="settings-item">
+                    <label for="WebSocketListenerAddress"><strong>WebSocket Listener Address:</strong></label>
+                    <input type="text" id="WebSocketListenerAddress" name="WebSocketListenerAddress" class="form-control" value="@Model.WebSocketListenerAddress" />
+                </div>
+                <div class="settings-item">
+                    <label for="WebSocketListenerPort"><strong>WebSocket Listener Port:</strong></label>
+                    <input type="number" id="WebSocketListenerPort" name="WebSocketListenerPort" class="form-control" value="@Model.WebSocketListenerPort" />
+                </div>
+                <div class="settings-item">
+                    <label for="UserInterfaceWebSocketPort"><strong>User Interface WebSocket Port:</strong></label>
+                    <input type="number" id="UserInterfaceWebSocketPort" name="UserInterfaceWebSocketPort" class="form-control" value="@Model.UserInterfaceWebSocketPort" />
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg mt-4">Save Changes</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        $("#settingsForm").on("submit", function(event) {
+            event.preventDefault();
+
+            var formData = $(this).serialize();
+
+            $.ajax({
+                type: "POST",
+                url: "/Process/ApplySettings",
+                data: formData,
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Settings Applied!',
+                            text: response.message,
+                            confirmButtonColor: '#4e54c8'
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Oops...',
+                            text: response.message,
+                            confirmButtonColor: '#d33'
+                        });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: 'Something went wrong!',
+                        confirmButtonColor: '#d33'
+                    });
+                }
+            });
+        });
+    });
+</script>
+
+</body>
+</html>

@@ -25,11 +25,17 @@ namespace STOTool.Feature
                 }
                 
                 ShardStatus serverStatus = ExtractServerStatus(message);
+                string result = ExtractMessage(message);
 
-                if (!MessageExist(message))
+                if (result == "null")
                 {
                     Logger.Trace("There's no message.");
                     return new MaintenanceInfo { ShardStatus = MaintenanceTimeType.Null }; 
+                }
+                
+                if (result != "null" && !result.Contains("UTC"))
+                {
+                    return new MaintenanceInfo { Message = result };
                 }
 
                 var (date, startTime, endTime) = await ExtractMaintenanceTime(message);
@@ -122,11 +128,11 @@ namespace STOTool.Feature
             }
         }
         
-        private static bool MessageExist(string? message)
+        private static string ExtractMessage(string? message)
         {
             if (string.IsNullOrEmpty(message))
             {
-                return false;
+                return "null";
             }
 
             try
@@ -136,15 +142,15 @@ namespace STOTool.Feature
 
                 if (!string.IsNullOrEmpty(msg))
                 {
-                    return true;
+                    return msg;
                 }
 
-                return false;
+                return "null";
             }
             catch (JsonReaderException ex)
             {
                 Logger.Error($"Failed to extract message: {ex.Message}");
-                return false;
+                return "null";
             }
         }
 

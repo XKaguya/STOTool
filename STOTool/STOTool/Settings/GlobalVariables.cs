@@ -21,5 +21,8 @@ namespace STOTool.Settings
         
         [Description("Whether or not enable the auto update feature.\nDefault value: True")]
         public static bool AutoUpdate { get; set; } = true;
+        
+        [Description("User Interface WebSocket Port\nDefault value: 9501")]
+        public static ushort UserInterfaceWebSocketPort { get; set; } = 9501;
     }
 }

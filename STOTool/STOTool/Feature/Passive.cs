@@ -100,7 +100,7 @@ namespace STOTool.Feature
                 case MaintenanceTimeType.SpecialMaintenance:
                 case MaintenanceTimeType.None:
                     return UpdateJsonAndReturn(maintenanceEnded, maintenanceEndedSent, PassiveEnum.MaintenanceEnded, PassiveEnum.MaintenanceEndedSent);
-
+                
                 default:
                     return PassiveEnum.Null;
             }
